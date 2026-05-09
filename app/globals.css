@@ -2,25 +2,169 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────
+   Reservezy design tokens
+   Base: deep navy-purple, slightly lighter than pure black
+   Accent: lavender/violet #8b86f9
+────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* backgrounds — lifted from pure black for breathing room */
+  --rz-bg: #09091a;
+  --rz-bg-elevated: #0f0f28;
+  --rz-card: #13132c;
+  --rz-card-hover: #17173a;
+
+  /* borders — visible but not harsh */
+  --rz-border: rgba(139, 134, 249, 0.12);
+  --rz-border-subtle: rgba(255, 255, 255, 0.07);
+
+  /* accent palette */
+  --rz-accent: #8b86f9;
+  --rz-accent-deep: #6d66f0;
+  --rz-accent-light: #a5a0ff;
+  --rz-accent-glow: rgba(139, 134, 249, 0.4);
+  --rz-accent-mist: rgba(139, 134, 249, 0.1);
+
+  /* text */
+  --rz-text: #eef0f8;
+  --rz-text-muted: #9aa3c2;
+  --rz-text-subtle: #6b7499;
+
+  /* semantic */
+  --background: var(--rz-bg);
+  --foreground: var(--rz-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ── */
+*,
+::before,
+::after {
+  border-color: var(--rz-border-subtle);
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--rz-bg);
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Typography defaults ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ── Input/select/textarea base ── */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background: rgba(13, 13, 35, 0.8);
+  color: var(--rz-text);
+  border: 1px solid rgba(139, 134, 249, 0.2);
+  border-radius: 0.75rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--rz-accent);
+  box-shadow: 0 0 0 3px rgba(139, 134, 249, 0.18);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--rz-text-subtle);
+}
+
+/* ── Focus ring for accessibility ── */
+:focus-visible {
+  outline: 2px solid var(--rz-accent);
+  outline-offset: 2px;
 }
 
 @layer utilities {
+  /* Backgrounds */
+  .rz-radial-hero {
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -5%, rgba(109, 102, 240, 0.28), transparent 58%),
+      radial-gradient(ellipse 55% 40% at 80% 80%, rgba(56, 189, 248, 0.1), transparent 50%),
+      var(--rz-bg);
+  }
+
+  .rz-radial-section {
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgba(139, 134, 249, 0.16), transparent 55%),
+      var(--rz-bg);
+  }
+
+  /* Cards */
+  .rz-card {
+    @apply rounded-2xl border bg-[#13132c]/90 backdrop-blur-sm;
+    border-color: rgba(139, 134, 249, 0.14);
+  }
+
+  .rz-card-hover {
+    @apply rz-card transition-all duration-200 hover:border-[#8b86f9]/30 hover:bg-[#17173a]/90 hover:shadow-[0_4px_24px_rgba(139,134,249,0.12)];
+  }
+
+  /* Glows */
+  .rz-glow {
+    box-shadow: 0 0 32px rgba(139, 134, 249, 0.32), 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .rz-glow-soft {
+    box-shadow: 0 0 20px rgba(139, 134, 249, 0.18), 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Buttons */
+  .rz-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full rz-glow bg-gradient-to-r from-[#8b86f9] to-[#6d66f0] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50;
+  }
+
+  .rz-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur-sm transition hover:border-white/25 hover:bg-white/[0.07] active:scale-[0.98];
+  }
+
+  /* Badges */
+  .rz-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-[#8b86f9]/25 bg-[#8b86f9]/10 px-3 py-1 text-xs font-medium text-[#c4b5fd];
+  }
+
+  /* Input field utility */
+  .rz-field {
+    @apply w-full rounded-xl border bg-[#0d0d23]/80 px-4 py-2.5 text-sm text-rz-text placeholder:text-rz-subtle transition focus:border-[#8b86f9] focus:outline-none focus:ring-2 focus:ring-[#8b86f9]/20;
+    border-color: rgba(139, 134, 249, 0.2);
+  }
+
+  /* Mock window chrome */
+  .rz-mock-window {
+    box-shadow:
+      0 0 0 1px rgba(139, 134, 249, 0.2),
+      0 24px 80px rgba(0, 0, 0, 0.6),
+      0 0 100px rgba(56, 189, 248, 0.12);
+  }
+
+  /* Legacy aliases kept for compatibility */
+  .slot-glow { @apply rz-glow; }
+  .slot-glow-soft { @apply rz-glow-soft; }
+  .slot-radial-hero { @apply rz-radial-hero; }
+  .slot-radial-section { @apply rz-radial-section; }
+  .slot-card-surface { @apply rz-card; }
+  .slot-mock-window { @apply rz-mock-window; }
+
   .text-balance {
     text-wrap: balance;
   }

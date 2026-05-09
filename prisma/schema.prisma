@@ -1,0 +1,360 @@
+// Reservezy schema — synced with `npm run db:push` (no migrations).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriptionTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT // reserved for future use
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum SlotMode {
+  FIXED
+  FLEXIBLE
+}
+
+enum CalendarProvider {
+  GOOGLE
+  MICROSOFT_OUTLOOK
+}
+
+/// Root tenant: booking site at `{subdomain}.reservezy.com`
+model Business {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  name      String
+  subdomain String   @unique
+  timezone  String   @default("Europe/London")
+
+  /// Completed multi-step onboarding
+  onboardingComplete   Boolean @default(false)
+  onboardingStep       Int     @default(0)
+  onboardingCompletedAt DateTime? @db.Timestamptz(3)
+
+  industryTemplateId String?
+  industryTemplate   IndustryTemplate? @relation(fields: [industryTemplateId], references: [id])
+
+  ownerId String  @unique
+  owner   Owner   @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId    String?
+
+  subscriptionTier SubscriptionTier @default(BASIC)
+
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+
+  slotMode SlotMode @default(FLEXIBLE)
+
+  /// Minutes between bookings (buffer).
+  bookingBufferMinutes Int @default(0)
+
+  allowCustomerStaffSelection    Boolean @default(false)
+  allowCustomerCancelReschedule  Boolean @default(false)
+  /// Hours before appointment that cancel/reschedule is blocked.
+  cancellationNoticeHours      Int      @default(24)
+
+  isDisabled Boolean @default(false)
+
+  services      Service[]
+  staffMembers  StaffMember[]
+  customers     Customer[]
+  bookings      Booking[]
+  timeSlots     TimeSlot[]
+  workingHours  WorkingHours[]
+  holidays      HolidayDate[]
+  branding      Branding?
+  subscriptions Subscription[]
+  calendarIntegrations CalendarIntegration[]
+}
+
+model Owner {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  email           String @unique
+  passwordHash    String
+  fullName        String
+
+  /// Email verification
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationSentAt  DateTime? @db.Timestamptz(3)
+
+  /// Password reset
+  passwordResetToken       String?   @unique
+  passwordResetExpiresAt   DateTime? @db.Timestamptz(3)
+
+  ownedBusiness Business?
+}
+
+model StaffMember {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  fullName String
+  email    String
+  passwordHash String?
+
+  isActive Boolean @default(true)
+
+  offeredServices Service[]
+
+  workingHours   WorkingHours[]
+  holidays       HolidayDate[]
+  bookings       Booking[]
+  timeSlots      TimeSlot[]
+
+  @@unique([businessId, email])
+  @@index([businessId])
+}
+
+model Service {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  name         String
+  description  String @default("")
+  durationMinutes Int
+  pricePence      Int       @default(0)
+  isActive       Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  bookings  Booking[]
+  timeSlots TimeSlot[]
+  staff     StaffMember[]
+
+  @@index([businessId, isActive])
+}
+
+/// Discrete bookable openings (often used when `SlotMode.FIXED`); optional linkage to confirmed `Booking`.
+model TimeSlot {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  staffMemberId String?
+  staffMember   StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt   DateTime @db.Timestamptz(3)
+
+  booking Booking?
+
+  @@index([businessId, startsAt])
+  @@index([staffMemberId, startsAt])
+}
+
+model Booking {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  staffMemberId String?
+  staffMember   StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  /// Optional anchored slot row (FIXED scheduling).
+  timeSlotId String?  @unique
+  timeSlot   TimeSlot? @relation(fields: [timeSlotId], references: [id], onDelete: SetNull)
+
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt   DateTime @db.Timestamptz(3)
+
+  status BookingStatus @default(CONFIRMED)
+
+  /// Customer-provided booking notes / special requests.
+  notes String @default("")
+
+  /// Snapshot of price in pence when booked (for analytics/revenue reporting).
+  pricePenceSnapshot Int @default(0)
+
+  /// Token for customer manage link (cancellation / reschedule) — hashed in app recommended; stores raw GUID for lookups.
+  managementToken String @unique @default(cuid())
+
+  reminderEmailSentAt DateTime? @db.Timestamptz(3)
+  reminderSmsSentAt   DateTime? @db.Timestamptz(3)
+
+  googleCalendarEventId String?
+  microsoftEventId       String?
+
+  @@index([businessId, startsAt])
+  @@index([businessId, status])
+}
+
+model Customer {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  fullName String
+  email    String
+  phone    String @default("")
+
+  bookings Booking[]
+
+  @@unique([businessId, email])
+  @@index([businessId, email])
+}
+
+/// Stripe subscription snapshot (one active row per business).
+model Subscription {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  stripeSubscriptionId String? @unique
+  stripePriceId       String?
+
+  tier   SubscriptionTier
+  status SubscriptionStatus @default(INACTIVE)
+
+  currentPeriodStart DateTime? @db.Timestamptz(3)
+  currentPeriodEnd   DateTime? @db.Timestamptz(3)
+  cancelAtPeriodEnd  Boolean @default(false)
+}
+
+model Branding {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  logoUrl           String?
+  primaryColour     String?
+  secondaryColour   String?
+  googleFontFamily  String?
+}
+
+model WorkingHours {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  /// When null — business default opening hours for all staff.
+  staffMemberId String?
+  staffMember   StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+
+  /// 0 = Sunday ... 6 = Saturday
+  dayOfWeek Int
+
+  openMinutes Int
+  closeMinutes Int
+
+  @@index([businessId, dayOfWeek])
+  @@index([staffMemberId, dayOfWeek])
+}
+
+model HolidayDate {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  /// Full calendar date in business context; UTC midnight normalized in app layer.
+  dateStart DateTime @db.Date
+
+  staffMemberId String?
+  staffMember   StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+
+  label String?
+
+  @@index([businessId, dateStart])
+}
+
+model CalendarIntegration {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  provider CalendarProvider
+
+  refreshToken String @db.Text
+  accessToken  String @db.Text
+  expiresAt    DateTime? @db.Timestamptz(3)
+
+  accountEmail String?
+  calendarId   String?
+
+  @@unique([businessId, provider])
+}
+
+/// Predefined industry presets (hair salon, gym, …). Seed data applied in implementation steps.
+model IndustryTemplate {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  slug        String @unique
+  displayName String
+  description String?
+
+  /// JSON payload: `{ "services": [{ "name", "durationMinutes", "pricePence", "description" }] }`
+  presetServicesJson Json
+
+  businesses Business[]
+}

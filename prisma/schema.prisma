@@ -88,6 +88,12 @@ model Business {
   ivrEnabled       Boolean @default(false)
   ivrForwardNumber String? // E.164 format, e.g. +441234567890
 
+  /// Managed IVR — Reservezy provisions the Twilio number on behalf of the business
+  ivrManagedEnabled      Boolean @default(false)
+  ivrPhoneNumber         String? // The Twilio-provisioned E.164 number shown to customers
+  ivrPhoneSid            String? // Twilio IncomingPhoneNumber SID for management/release
+  ivrAddOnSubscriptionId String? // Stripe subscription ID for the £2/month IVR add-on
+
   services      Service[]
   staffMembers  StaffMember[]
   customers     Customer[]

@@ -8,6 +8,16 @@ import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
 
 export const dynamic = "force-dynamic";
 
+const IVR_SELECT = {
+  subdomain: true,
+  ivrEnabled: true,
+  ivrForwardNumber: true,
+  ivrManagedEnabled: true,
+  ivrPhoneNumber: true,
+  ivrAddOnSubscriptionId: true,
+  subscriptionTier: true,
+} as const;
+
 const updateSchema = z.object({
   ivrEnabled: z.boolean().optional(),
   ivrForwardNumber: z.string().trim().max(20).nullable().optional(),
@@ -20,7 +30,7 @@ export async function GET(): Promise<Response> {
 
   const business = await prisma.business.findUnique({
     where: { id: ctx.businessId },
-    select: { subdomain: true, ivrEnabled: true, ivrForwardNumber: true },
+    select: IVR_SELECT,
   });
 
   if (!business) return jsonError("Business not found.", 404);
@@ -46,7 +56,7 @@ export async function PATCH(req: Request): Promise<Response> {
       ...(ivrEnabled !== undefined && { ivrEnabled }),
       ...(ivrForwardNumber !== undefined && { ivrForwardNumber }),
     },
-    select: { subdomain: true, ivrEnabled: true, ivrForwardNumber: true },
+    select: IVR_SELECT,
   });
 
   return jsonOk(updated);

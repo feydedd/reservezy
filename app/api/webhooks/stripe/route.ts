@@ -1,3 +1,4 @@
+import twilio from "twilio";
 import Stripe from "stripe";
 
 import {
@@ -18,6 +19,84 @@ function parsePricingPlanTier(raw?: string | null): PricingPlanTier | null {
   return null;
 }
 
+/** Provisions a Twilio number for managed IVR after payment. */
+async function provisionIvrNumber(businessId: string, countryCode: string): Promise<void> {
+  const sid   = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (!sid || !token) {
+    console.error("[IVR webhook] Twilio credentials not set — skipping provision.");
+    return;
+  }
+
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { subdomain: true, ivrPhoneSid: true },
+  });
+  if (!business || business.ivrPhoneSid) return; // already provisioned
+
+  const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "https://reservezy.com";
+  const voiceUrl = `${appUrl}/api/public/ivr/${encodeURIComponent(business.subdomain)}/voice`;
+  const client   = twilio(sid, token);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const available = await (client.availablePhoneNumbers(countryCode) as any)
+      .local.list({ limit: 1, voiceEnabled: true, smsEnabled: true });
+
+    if (!available.length) {
+      console.error("[IVR webhook] No numbers available in", countryCode);
+      return;
+    }
+
+    const purchased = await client.incomingPhoneNumbers.create({
+      phoneNumber: available[0].phoneNumber,
+      voiceUrl,
+      voiceMethod: "POST",
+    });
+
+    await prisma.business.update({
+      where: { id: businessId },
+      data: {
+        ivrManagedEnabled: true,
+        ivrEnabled: true,
+        ivrPhoneNumber: purchased.phoneNumber,
+        ivrPhoneSid: purchased.sid,
+      },
+    });
+  } catch (err) {
+    console.error("[IVR webhook] Twilio provision failed:", err);
+  }
+}
+
+/** Releases a managed Twilio number when the IVR add-on subscription is cancelled. */
+async function releaseIvrNumber(businessId: string): Promise<void> {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { ivrPhoneSid: true },
+  });
+  if (!business?.ivrPhoneSid) return;
+
+  const sid   = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (sid && token) {
+    try {
+      await twilio(sid, token).incomingPhoneNumbers(business.ivrPhoneSid).remove();
+    } catch (err) {
+      console.error("[IVR webhook] Twilio release failed:", err);
+    }
+  }
+
+  await prisma.business.update({
+    where: { id: businessId },
+    data: {
+      ivrManagedEnabled: false,
+      ivrPhoneNumber: null,
+      ivrPhoneSid: null,
+      ivrAddOnSubscriptionId: null,
+    },
+  });
+}
+
 async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
 ): Promise<void> {
@@ -26,6 +105,23 @@ async function handleCheckoutSessionCompleted(
   }
 
   if (session.payment_status !== "paid") {
+    return;
+  }
+
+  // IVR add-on checkout — provision a Twilio number
+  if (session.metadata?.type === "ivr_addon") {
+    const businessId  = session.metadata.businessId;
+    const countryCode = session.metadata.countryCode ?? "GB";
+    const subRef      = session.subscription;
+    const subId       = typeof subRef === "string" ? subRef : subRef?.id;
+
+    if (businessId && subId) {
+      await prisma.business.update({
+        where: { id: businessId },
+        data: { ivrAddOnSubscriptionId: subId },
+      });
+      await provisionIvrNumber(businessId, countryCode);
+    }
     return;
   }
 
@@ -182,8 +278,15 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription): Promise<void
 }
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
-  const businessId = (sub as unknown as { metadata: Stripe.Metadata }).metadata?.businessId;
+  const meta       = (sub as unknown as { metadata: Stripe.Metadata }).metadata;
+  const businessId = meta?.businessId;
   if (!businessId) return;
+
+  // IVR add-on cancellation — release provisioned Twilio number
+  if (meta?.type === "ivr_addon") {
+    await releaseIvrNumber(businessId);
+    return;
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.business.update({

@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, ShieldOff, Shield, CrownIcon, X, CheckCircle, AlertCircle, Send, Loader2 } from "lucide-react";
 
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+
 type BusinessRow = {
   id: string;
   name: string;
@@ -65,6 +67,8 @@ export default function BusinessManager({ initialStats }: { initialStats: { tota
 
   // Email health
   const [emailHealth, setEmailHealth] = useState<EmailHealthState>({ open: false, loading: false, result: null });
+
+  useBodyScrollLock(planModal !== null || emailHealth.open);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -276,7 +280,8 @@ export default function BusinessManager({ initialStats }: { initialStats: { tota
 
       {/* Plan Grant Modal */}
       {planModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => !planModal.saving && setPlanModal(null)}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm" onClick={() => !planModal.saving && setPlanModal(null)}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0d0d1f] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button className="absolute right-4 top-4 text-rz-subtle hover:text-white" onClick={() => setPlanModal(null)} disabled={planModal.saving}>
               <X className="h-5 w-5" />
@@ -385,12 +390,14 @@ export default function BusinessManager({ initialStats }: { initialStats: { tota
               </>
             )}
           </div>
+          </div>
         </div>
       )}
 
       {/* Email Health Modal */}
       {emailHealth.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEmailHealth((s) => ({ ...s, open: false }))}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm" onClick={() => setEmailHealth((s) => ({ ...s, open: false }))}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0d0d1f] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button className="absolute right-4 top-4 text-rz-subtle hover:text-white" onClick={() => setEmailHealth((s) => ({ ...s, open: false }))}>
               <X className="h-5 w-5" />
@@ -446,6 +453,7 @@ export default function BusinessManager({ initialStats }: { initialStats: { tota
                 )}
               </div>
             ) : null}
+          </div>
           </div>
         </div>
       )}

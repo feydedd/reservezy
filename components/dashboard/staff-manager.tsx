@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, UserX, UserCheck, X, Check } from "lucide-react";
 
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+
 type ServiceOption = { id: string; name: string };
 
 type StaffMember = {
@@ -33,6 +35,8 @@ export default function StaffManager() {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+
+  useBodyScrollLock(modal !== null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,7 +221,8 @@ export default function StaffManager() {
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#13132c] p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">
@@ -279,6 +284,7 @@ export default function StaffManager() {
                 {saving ? "Saving…" : "Save"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

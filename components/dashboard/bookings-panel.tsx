@@ -3,6 +3,8 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Search, Filter, Download, Plus, X } from "lucide-react";
 
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+
 type BookingRow = {
   id: string;
   startsAt: string;
@@ -42,6 +44,8 @@ function NewBookingModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState<string | null>(null);
+
+  useBodyScrollLock(true);
 
   const [serviceId,     setServiceId]     = useState("");
   const [staffMemberId, setStaffMemberId] = useState("");
@@ -84,7 +88,8 @@ function NewBookingModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center px-4 py-8">
       <div className="rz-glow-soft w-full max-w-lg rounded-3xl border border-[#8b86f9]/18 bg-[#13132c]/98 shadow-2xl shadow-black/50">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.07] px-6 py-4">
@@ -163,6 +168,7 @@ function NewBookingModal({ onClose, onCreated }: { onClose: () => void; onCreate
             {saving ? "Saving…" : "Create booking"}
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

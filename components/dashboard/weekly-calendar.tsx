@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOUR_START = 7;
 const HOUR_END = 21;
@@ -42,6 +44,8 @@ export default function WeeklyCalendar({ timezone }: { timezone: string }) {
   const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BookingEntry | null>(null);
+
+  useBodyScrollLock(selected !== null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,9 +205,10 @@ export default function WeeklyCalendar({ timezone }: { timezone: string }) {
       {/* Booking detail drawer */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm"
           onClick={() => setSelected(null)}
         >
+          <div className="flex min-h-full items-end justify-center p-4 sm:items-center">
           <div
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#13132c] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -254,6 +259,7 @@ export default function WeeklyCalendar({ timezone }: { timezone: string }) {
                 </div>
               )}
             </dl>
+          </div>
           </div>
         </div>
       )}

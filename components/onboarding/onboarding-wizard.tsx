@@ -22,10 +22,10 @@ const TIER_INFO = {
     color: "text-slate-300",
     badge: "bg-white/[0.06] text-slate-300",
     features: [
-      "Public booking page",
-      "Bookings & calendar dashboard",
+      "Public booking page & calendar dashboard",
+      "In-app checklist, referrals & promo codes",
+      "Internal notes (team-only)",
       "Buffer time & holiday closures",
-      "Email confirmations",
     ],
   },
   STANDARD: {
@@ -34,9 +34,9 @@ const TIER_INFO = {
     badge: "bg-[#8b86f9]/15 text-rz-accent",
     features: [
       "Everything in Basic",
-      "Email & SMS reminders",
-      "Staff management",
-      "Customer staff selection",
+      "Email & SMS reminders & staff tools",
+      "Client intake forms",
+      "Accounting export (CSV)",
     ],
   },
   PREMIUM: {
@@ -47,8 +47,8 @@ const TIER_INFO = {
       "Everything in Standard",
       "Google Calendar & Outlook sync",
       "Custom branding (logo, colours, fonts)",
-      "Full analytics dashboard",
-      "Customer cancel & reschedule links",
+      "Full analytics & cancel/reschedule links",
+      "Multi-location, review prompts & template library",
     ],
   },
 } as const;

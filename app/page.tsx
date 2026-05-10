@@ -1,5 +1,14 @@
 import Link from "next/link";
 
+import {
+  MotionFeatureCard,
+  MotionFeatureGrid,
+  MotionHeroBadge,
+  MotionHeroCtas,
+  MotionHeroSub,
+  MotionHeroTitle,
+  MotionMockWindow,
+} from "@/components/marketing/home-motion";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 
 /* ── Availability grid mock ── */
@@ -11,10 +20,10 @@ function AvailabilityMock() {
       {cells.map((i) => (
         <div
           key={i}
-          className={`aspect-square rounded-lg transition-all ${
+          className={`aspect-square rounded-lg transition-all duration-300 ${
             booked.has(i)
-              ? "bg-gradient-to-br from-[#8b86f9]/90 to-[#5b54e6] shadow-[0_0_10px_rgba(139,134,249,0.4)]"
-              : "bg-white/[0.05] hover:bg-white/[0.09]"
+              ? "rz-slot-booked animate-rz-slot-pulse"
+              : "bg-white/[0.05] hover:bg-white/[0.09] hover:scale-[1.03]"
           }`}
         />
       ))}
@@ -87,7 +96,7 @@ const faq = [
   },
   {
     q: "Will it work alongside my existing calendar?",
-    a: "Standard connects to Google Calendar and Microsoft Outlook so every booking lands there automatically.",
+    a: "Premium connects to Google Calendar and Microsoft Outlook so every booking lands there automatically.",
   },
 ];
 
@@ -115,32 +124,33 @@ export default function Home() {
       {/* ── Hero ── */}
       <main>
         <section className="relative mx-auto max-w-4xl px-5 pb-16 pt-8 text-center sm:px-8 sm:pt-16">
-          {/* Pill badge */}
-          <div className="rz-badge mb-8 inline-flex">
-            <span aria-hidden>✨</span>
-            Smart scheduling for small businesses
-          </div>
+          <MotionHeroBadge>
+            <div className="rz-badge mb-8 inline-flex">
+              <span aria-hidden>✨</span>
+              Smart scheduling for small businesses
+            </div>
+          </MotionHeroBadge>
 
-          <h1 className="text-balance text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-[3.25rem] sm:leading-[1.1]">
+          <MotionHeroTitle>
             Bookings that{" "}
             <span className="bg-gradient-to-r from-[#b0abff] via-[#8b86f9] to-[#7c6df8] bg-clip-text text-transparent">
               run themselves.
             </span>
-          </h1>
+          </MotionHeroTitle>
 
-          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-rz-muted sm:text-lg">
+          <MotionHeroSub>
             Give your business its own booking page, take payments upfront, and send
             automatic reminders — without lifting a finger.
-          </p>
+          </MotionHeroSub>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <MotionHeroCtas>
             <Link href="/signup" className="rz-btn-primary px-8 py-3.5 text-base">
               Get started free <span aria-hidden>→</span>
             </Link>
             <Link href="/pricing" className="rz-btn-ghost px-8 py-3.5 text-base">
               See pricing
             </Link>
-          </div>
+          </MotionHeroCtas>
 
           {/* Social proof */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-rz-subtle">
@@ -160,10 +170,7 @@ export default function Home() {
           className="relative mx-auto max-w-5xl px-5 pb-20 sm:px-8"
           aria-label="Dashboard preview"
         >
-          <div
-            className="rz-mock-window relative mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/[0.1] bg-gradient-to-b from-[#14143a] to-[#0c0c22] p-1"
-            style={{ transform: "perspective(1200px) rotateX(5deg) rotateY(-3deg)" }}
-          >
+          <MotionMockWindow>
             {/* Window chrome */}
             <div className="flex items-center gap-2 border-b border-white/[0.07] bg-[#10102a] px-4 py-3">
               <span className="flex gap-1.5">
@@ -206,7 +213,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          </div>
+          </MotionMockWindow>
         </section>
 
         {/* ── Features ── */}
@@ -222,27 +229,27 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <MotionFeatureGrid className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((f) => (
-                <article
+                <MotionFeatureCard
                   key={f.title}
-                  className={`rz-card-hover flex flex-col gap-3 p-7 ${
-                    f.wide ? "sm:col-span-2 lg:col-span-2" : ""
-                  }`}
+                  className={f.wide ? "sm:col-span-2 lg:col-span-2" : ""}
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#8b86f9]/12 text-xl ring-1 ring-[#8b86f9]/25">
-                    {f.icon}
-                  </div>
-                  <h3 className="text-[1.05rem] font-bold text-white">{f.title}</h3>
-                  <p className="text-sm leading-relaxed text-rz-muted">{f.body}</p>
-                  {f.mock ? (
-                    <div className="mt-3 rounded-xl border border-white/[0.06] bg-[#09091a]/70 p-4">
-                      <AvailabilityMock />
+                  <article className="rz-card-hover flex h-full flex-col gap-3 p-7">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#8b86f9]/12 text-xl ring-1 ring-[#8b86f9]/25">
+                      {f.icon}
                     </div>
-                  ) : null}
-                </article>
+                    <h3 className="text-[1.05rem] font-bold text-white">{f.title}</h3>
+                    <p className="text-sm leading-relaxed text-rz-muted">{f.body}</p>
+                    {f.mock ? (
+                      <div className="mt-3 rounded-xl border border-white/[0.06] bg-[#09091a]/70 p-4">
+                        <AvailabilityMock />
+                      </div>
+                    ) : null}
+                  </article>
+                </MotionFeatureCard>
               ))}
-            </div>
+            </MotionFeatureGrid>
           </div>
         </section>
 

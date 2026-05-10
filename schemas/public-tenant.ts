@@ -19,6 +19,7 @@ export const publicAvailabilityQuerySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD."),
   staffMemberId: z.string().cuid().optional(),
+  businessLocationId: z.string().cuid().optional(),
 });
 
 export type PublicAvailabilityQuery = z.infer<
@@ -46,6 +47,10 @@ export const publicBookingCreateSchema = z.object({
     }),
   customerPhone: z.string().trim().max(40).optional().default(""),
   notes: z.string().trim().max(2000).optional().default(""),
+  promoCode: z.string().trim().min(1).max(40).optional(),
+  referralToken: z.string().trim().min(8).max(64).optional(),
+  businessLocationId: z.string().cuid().optional(),
+  intakeAnswers: z.record(z.string(), z.string()).optional(),
 });
 
 export type PublicBookingCreateInput = z.infer<

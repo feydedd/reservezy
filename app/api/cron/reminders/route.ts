@@ -13,8 +13,9 @@ import { BookingStatus } from "@prisma/client";
 
 import { jsonError, jsonOk } from "@/lib/http/api-response";
 import { prisma } from "@/lib/prisma";
-import { sendCustomerReminder } from "@/lib/email/resend";
+import { sendCustomerReminder, sendReviewPromptEmail } from "@/lib/email/resend";
 import { sendBookingReminderSms } from "@/lib/sms/twilio";
+import { hasSmsFeatures } from "@/lib/subscription/tiers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -74,8 +75,10 @@ export async function GET(req: Request): Promise<Response> {
         allowCancelReschedule: booking.business.allowCustomerCancelReschedule,
       });
 
-      // SMS reminder for Premium tier customers who have a phone number
-      if (booking.business.subscriptionTier === "PREMIUM" && booking.customer.phone) {
+      if (
+        hasSmsFeatures(booking.business.subscriptionTier) &&
+        booking.customer.phone
+      ) {
         sendBookingReminderSms({
           customerName: booking.customer.fullName,
           customerPhone: booking.customer.phone,
@@ -99,10 +102,64 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
+  /* ── Review prompts (Premium): completed visits, 1–6h after end time ── */
+  const reviewWindowStart = addMinutes(new Date(), -360);
+  const reviewWindowEnd = addMinutes(new Date(), -60);
+
+  const reviewCandidates = await prisma.booking.findMany({
+    where: {
+      status: BookingStatus.COMPLETED,
+      reviewPromptSentAt: null,
+      endsAt: { gte: reviewWindowStart, lte: reviewWindowEnd },
+      business: {
+        subscriptionTier: "PREMIUM",
+        reviewPromptEnabled: true,
+        isDisabled: false,
+        reviewUrl: { not: null },
+      },
+    },
+    include: {
+      customer: { select: { email: true, fullName: true } },
+      service: { select: { name: true } },
+      business: {
+        select: {
+          name: true,
+          reviewUrl: true,
+        },
+      },
+    },
+    take: 50,
+  });
+
+  let reviewSent = 0;
+  for (const b of reviewCandidates) {
+    const url = b.business.reviewUrl;
+    if (!url || !url.startsWith("http")) {
+      continue;
+    }
+    try {
+      await sendReviewPromptEmail({
+        customerEmail: b.customer.email,
+        customerFirstName: b.customer.fullName.split(/\s+/)[0] ?? "there",
+        businessName: b.business.name,
+        serviceName: b.service.name,
+        reviewUrl: url,
+      });
+      await prisma.booking.update({
+        where: { id: b.id },
+        data: { reviewPromptSentAt: new Date() },
+      });
+      reviewSent++;
+    } catch (err) {
+      console.error("[reminders] review prompt failed", b.id, err);
+    }
+  }
+
   return jsonOk({
     processed: bookings.length,
     sent,
     errors,
+    reviewPromptsSent: reviewSent,
     window: { from: windowStart.toISOString(), to: windowEnd.toISOString() },
   });
 }

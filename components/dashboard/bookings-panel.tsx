@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Search, Filter, Download, Plus, X } from "lucide-react";
 
 type BookingRow = {
@@ -9,10 +9,14 @@ type BookingRow = {
   endsAt: string;
   status: string;
   notes: string;
+  staffNotes: string;
+  intakeAnswersJson: unknown;
+  discountPence: number;
   pricePenceSnapshot: number;
   service: { name: string };
   staffMember: { fullName: string; id: string } | null;
-  customer: { fullName: string; email: string; phone: string };
+  customer: { fullName: string; email: string; phone: string; referralToken: string };
+  businessLocation: { id: string; name: string } | null;
 };
 
 type ServiceOption  = { id: string; name: string; durationMinutes: number };
@@ -165,7 +169,11 @@ function NewBookingModal({ onClose, onCreated }: { onClose: () => void; onCreate
 }
 
 /* ── Bookings panel ────────────────────────────────────────────────────── */
-export function BookingsPanel() {
+export function BookingsPanel({
+  canExportAccounting = false,
+}: {
+  canExportAccounting?: boolean;
+}) {
   const [rows,    setRows]    = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
@@ -177,6 +185,8 @@ export function BookingsPanel() {
   const [from,        setFrom]        = useState("");
   const [to,          setTo]          = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [expandId, setExpandId] = useState<string | null>(null);
+  const [staffDraft, setStaffDraft] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -188,7 +198,13 @@ export function BookingsPanel() {
       const res  = await fetch(`/api/dashboard/bookings?${params}`);
       const body = (await res.json()) as { bookings?: BookingRow[]; error?: string };
       if (!res.ok) { setError(body.error ?? "Failed to load"); return; }
-      setRows(body.bookings ?? []);
+      const list = body.bookings ?? [];
+      setRows(list);
+      const draft: Record<string, string> = {};
+      for (const r of list) {
+        draft[r.id] = r.staffNotes ?? "";
+      }
+      setStaffDraft(draft);
     } catch { setError("Network error."); }
     finally  { setLoading(false); }
   }, [from, to, status]);
@@ -201,6 +217,25 @@ export function BookingsPanel() {
         r.customer.email.toLowerCase().includes(search.toLowerCase()) ||
         r.service.name.toLowerCase().includes(search.toLowerCase()))
     : rows;
+
+  const saveStaffNotes = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/dashboard/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ staffNotes: staffDraft[id] ?? "" }),
+      });
+      if (!res.ok) {
+        const b = await res.json();
+        setError(b.error ?? "Update failed");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const updateStatus = async (id: string, newStatus: string) => {
     setBusyId(id);
@@ -280,6 +315,13 @@ export function BookingsPanel() {
           </div>
         )}
 
+        {canExportAccounting && (
+          <p className="text-xs text-rz-subtle">
+            Need journal-ready columns? Use{" "}
+            <strong className="text-rz-muted">Accounting export (CSV)</strong> at the top of this page.
+          </p>
+        )}
+
         {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
 
         {loading ? (
@@ -306,7 +348,8 @@ export function BookingsPanel() {
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
                 {filtered.map(row => (
-                  <tr key={row.id} className="transition hover:bg-white/[0.02]">
+                  <Fragment key={row.id}>
+                  <tr className="transition hover:bg-white/[0.02]">
                     <td className="px-4 py-3">
                       <div className="text-xs font-medium text-white">{new Date(row.startsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
                       <div className="text-[11px] text-rz-subtle">{new Date(row.startsAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
@@ -325,7 +368,14 @@ export function BookingsPanel() {
                       {row.pricePenceSnapshot > 0 ? fmt(row.pricePenceSnapshot) : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandId(expandId === row.id ? null : row.id)}
+                          className="rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-rz-muted hover:text-white"
+                        >
+                          {expandId === row.id ? "Hide" : "Details"}
+                        </button>
                         {row.status === "CONFIRMED" && (
                           <>
                             <button disabled={busyId === row.id} onClick={() => updateStatus(row.id, "COMPLETED")} className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50">Complete</button>
@@ -336,6 +386,58 @@ export function BookingsPanel() {
                       </div>
                     </td>
                   </tr>
+                  {expandId === row.id && (
+                    <tr key={`${row.id}-detail`} className="bg-white/[0.02]">
+                      <td colSpan={6} className="px-4 py-4 text-left">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-xs font-bold uppercase text-rz-subtle">Internal notes (team only)</p>
+                            <textarea
+                              className="rz-field mt-2 min-h-[80px] text-sm"
+                              value={staffDraft[row.id] ?? ""}
+                              onChange={(e) =>
+                                setStaffDraft((d) => ({ ...d, [row.id]: e.target.value }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              disabled={busyId === row.id}
+                              onClick={() => void saveStaffNotes(row.id)}
+                              className="rz-btn-primary mt-2 px-3 py-1.5 text-xs disabled:opacity-50"
+                            >
+                              Save notes
+                            </button>
+                          </div>
+                          <div className="text-xs text-rz-muted">
+                            <p className="font-bold uppercase text-rz-subtle">Referral token</p>
+                            <code className="mt-1 block break-all rounded-lg bg-black/30 p-2 text-[11px] text-rz-accent">
+                              {row.customer.referralToken}
+                            </code>
+                            {row.intakeAnswersJson != null && (
+                              <>
+                                <p className="mt-3 font-bold uppercase text-rz-subtle">Intake answers</p>
+                                <pre className="mt-1 max-h-40 overflow-auto rounded-lg bg-black/30 p-2 text-[11px]">
+                                  {JSON.stringify(row.intakeAnswersJson, null, 2)}
+                                </pre>
+                              </>
+                            )}
+                            {row.discountPence > 0 && (
+                              <p className="mt-2 text-amber-200/90">
+                                Promo discount: {fmt(row.discountPence)}
+                              </p>
+                            )}
+                            {row.businessLocation && (
+                              <p className="mt-2">
+                                Location:{" "}
+                                <span className="text-white">{row.businessLocation.name}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

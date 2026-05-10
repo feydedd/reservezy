@@ -4,6 +4,7 @@ import { BookingStatus } from "@prisma/client";
 
 import { buildAvailabilitySlots } from "@/lib/booking/availability";
 import { prisma } from "@/lib/prisma";
+import { hasPremiumFeatures } from "@/lib/subscription/tiers";
 import {
   publicAvailabilityQuerySchema,
   type PublicAvailabilityQuery,
@@ -19,6 +20,7 @@ function parseQuery(url: URL): PublicAvailabilityQuery | null {
     serviceId: url.searchParams.get("serviceId") ?? "",
     date: url.searchParams.get("date") ?? "",
     staffMemberId: url.searchParams.get("staffMemberId") ?? undefined,
+    businessLocationId: url.searchParams.get("businessLocationId") ?? undefined,
   };
   const parsed = publicAvailabilityQuerySchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
@@ -63,6 +65,7 @@ export async function GET(
           offeredServices: { select: { id: true } },
         },
       },
+      locations: { select: { id: true } },
     },
   });
 
@@ -75,6 +78,41 @@ export async function GET(
     return NextResponse.json({ error: "Service not found." }, { status: 404 });
   }
 
+  const multiLoc =
+    hasPremiumFeatures(business.subscriptionTier) &&
+    business.locations.length >= 2;
+
+  if (multiLoc) {
+    if (!query.businessLocationId) {
+      return NextResponse.json(
+        { error: "Choose a location to see availability." },
+        { status: 422 },
+      );
+    }
+    const locOk = business.locations.some((l) => l.id === query.businessLocationId);
+    if (!locOk) {
+      return NextResponse.json({ error: "Unknown location." }, { status: 404 });
+    }
+    if (
+      service.businessLocationId &&
+      service.businessLocationId !== query.businessLocationId
+    ) {
+      return NextResponse.json(
+        { error: "This service is not offered at that location." },
+        { status: 422 },
+      );
+    }
+  }
+
+  const eligibleStaff = multiLoc
+    ? business.staffMembers.filter(
+        (s) =>
+          !query.businessLocationId ||
+          !s.businessLocationId ||
+          s.businessLocationId === query.businessLocationId,
+      )
+    : business.staffMembers;
+
   const holidayHit = business.holidays.some(
     (h) => h.dateStart.toISOString().slice(0, 10) === query.date,
   );
@@ -84,7 +122,7 @@ export async function GET(
 
   let staffMemberId = query.staffMemberId ?? null;
   const staffSelectionRequired =
-    business.allowCustomerStaffSelection && business.staffMembers.length > 0;
+    business.allowCustomerStaffSelection && eligibleStaff.length > 0;
 
   if (staffSelectionRequired) {
     if (!staffMemberId) {
@@ -93,7 +131,7 @@ export async function GET(
         { status: 422 },
       );
     }
-    const staff = business.staffMembers.find((s) => s.id === staffMemberId);
+    const staff = eligibleStaff.find((s) => s.id === staffMemberId);
     if (!staff) {
       return NextResponse.json({ error: "Unknown staff member." }, { status: 404 });
     }
@@ -122,6 +160,14 @@ export async function GET(
       status: BookingStatus.CONFIRMED,
       startsAt: { lt: new Date(rangeEnd.getTime()) },
       endsAt: { gt: new Date(rangeStart.getTime()) },
+      ...(multiLoc && query.businessLocationId
+        ? {
+            OR: [
+              { businessLocationId: query.businessLocationId },
+              { businessLocationId: null },
+            ],
+          }
+        : {}),
     },
     select: {
       startsAt: true,
@@ -139,14 +185,13 @@ export async function GET(
     ? bookings
         .filter(
           (b) =>
-            b.staffMemberId === staffMemberId ||
-            b.staffMemberId === null,
+            b.staffMemberId === staffMemberId || b.staffMemberId === null,
         )
         .map((b) => ({ startsAt: b.startsAt, endsAt: b.endsAt }))
     : businessIntervals;
 
   const staffMember = staffMemberId
-    ? business.staffMembers.find((s) => s.id === staffMemberId)
+    ? eligibleStaff.find((s) => s.id === staffMemberId)
     : undefined;
 
   const staffWorkingSlices =

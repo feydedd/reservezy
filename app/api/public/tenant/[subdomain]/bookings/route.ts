@@ -1,12 +1,19 @@
 import { Prisma } from "@prisma/client";
 import { BookingStatus } from "@prisma/client";
 
+import { computeDiscountPence, finalPricePence } from "@/lib/booking/promo";
 import { jsonError, jsonOk } from "@/lib/http/api-response";
+import { parseIntakeFieldsJson, validateIntakeAnswers } from "@/lib/intake/fields";
 import { prisma } from "@/lib/prisma";
 import {
   publicBookingCreateSchema,
   type PublicBookingCreateInput,
 } from "@/schemas/public-tenant";
+import {
+  hasIntakeAndAccountingExport,
+  hasPremiumFeatures,
+  hasSmsFeatures,
+} from "@/lib/subscription/tiers";
 import {
   sendCustomerConfirmation,
   sendOwnerNotification,
@@ -14,6 +21,7 @@ import {
 import { sendBookingConfirmationSms } from "@/lib/sms/twilio";
 import { pushBookingToGoogleCalendar } from "@/lib/calendar/google";
 import { pushBookingToOutlookCalendar } from "@/lib/calendar/outlook";
+import { customerReferralBookingUrl } from "@/lib/urls/booking-page";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +47,7 @@ async function validateStaffAndService(
   payload: PublicBookingCreateInput,
   allowStaffSelection: boolean,
   staffCount: number,
+  bookingLocationId: string | null,
 ): Promise<{ error: string; status: number } | null> {
   const staffRequired = allowStaffSelection && staffCount > 0;
 
@@ -69,6 +78,13 @@ async function validateStaffAndService(
         error: "That teammate does not perform this service.",
         status: 422,
       };
+    }
+    if (
+      bookingLocationId &&
+      staff.businessLocationId &&
+      staff.businessLocationId !== bookingLocationId
+    ) {
+      return { error: "That team member is not at this location.", status: 422 };
     }
   }
 
@@ -110,6 +126,7 @@ export async function POST(
     include: {
       services: { where: { id: payload.serviceId, isActive: true } },
       staffMembers: { where: { isActive: true } },
+      locations: { select: { id: true } },
       owner: { select: { email: true } },
     },
   });
@@ -119,11 +136,36 @@ export async function POST(
   }
 
   const hasStandardNotifications =
-    business.subscriptionTier === "STANDARD" || business.subscriptionTier === "PREMIUM";
+    business.subscriptionTier === "STANDARD" ||
+    business.subscriptionTier === "PREMIUM";
 
   const service = business.services[0];
   if (!service) {
     return jsonError("Service not found.", 404);
+  }
+
+  const multiLoc =
+    hasPremiumFeatures(business.subscriptionTier) &&
+    business.locations.length >= 2;
+
+  let bookingLocationId: string | null = null;
+  if (multiLoc) {
+    if (!payload.businessLocationId) {
+      return jsonError("Please choose a location.", 422);
+    }
+    const okLoc = business.locations.some((l) => l.id === payload.businessLocationId);
+    if (!okLoc) {
+      return jsonError("Invalid location.", 404);
+    }
+    bookingLocationId = payload.businessLocationId;
+  }
+
+  if (
+    bookingLocationId &&
+    service.businessLocationId &&
+    service.businessLocationId !== bookingLocationId
+  ) {
+    return jsonError("This service is not available at the selected location.", 422);
   }
 
   const expectedMs = service.durationMinutes * 60 * 1000;
@@ -131,11 +173,45 @@ export async function POST(
     return jsonError("Times do not match the service duration.", 422);
   }
 
+  const intakeFields = parseIntakeFieldsJson(service.intakeFormFieldsJson);
+  if (hasIntakeAndAccountingExport(business.subscriptionTier)) {
+    if (intakeFields.length > 0) {
+      const v = validateIntakeAnswers(intakeFields, payload.intakeAnswers);
+      if (!v.ok) {
+        return jsonError(v.error, 422);
+      }
+    } else if (
+      payload.intakeAnswers &&
+      Object.keys(payload.intakeAnswers).length > 0
+    ) {
+      return jsonError("This service does not collect intake answers.", 422);
+    }
+  } else if (
+    payload.intakeAnswers &&
+    Object.keys(payload.intakeAnswers).length > 0
+  ) {
+    return jsonError("Intake forms are not available for this business plan.", 422);
+  }
+
+  let referredByCustomerId: string | null = null;
+  if (payload.referralToken?.trim()) {
+    const ref = await prisma.customer.findFirst({
+      where: {
+        businessId: business.id,
+        referralToken: payload.referralToken.trim(),
+      },
+    });
+    if (ref && ref.email !== payload.customerEmail) {
+      referredByCustomerId = ref.id;
+    }
+  }
+
   const staffRule = await validateStaffAndService(
     business.id,
     payload,
     business.allowCustomerStaffSelection,
     business.staffMembers.length,
+    bookingLocationId,
   );
   if (staffRule) {
     return jsonError(staffRule.error, staffRule.status);
@@ -144,20 +220,31 @@ export async function POST(
   try {
     const booking = await prisma.$transaction(
       async (tx) => {
+        const andParts: Prisma.BookingWhereInput[] = [];
+        if (payload.staffMemberId) {
+          andParts.push({
+            OR: [
+              { staffMemberId: payload.staffMemberId },
+              { staffMemberId: null },
+            ],
+          });
+        }
+        if (multiLoc && bookingLocationId) {
+          andParts.push({
+            OR: [
+              { businessLocationId: bookingLocationId },
+              { businessLocationId: null },
+            ],
+          });
+        }
+
         const overlapping = await tx.booking.findMany({
           where: {
             businessId: business.id,
             status: BookingStatus.CONFIRMED,
             startsAt: { lt: endsAt },
             endsAt: { gt: startsAt },
-            ...(payload.staffMemberId
-              ? {
-                  OR: [
-                    { staffMemberId: payload.staffMemberId },
-                    { staffMemberId: null },
-                  ],
-                }
-              : {}),
+            ...(andParts.length > 0 ? { AND: andParts } : {}),
           },
           select: {
             startsAt: true,
@@ -174,6 +261,37 @@ export async function POST(
         if (conflicts) {
           throw new Error("SLOT_TAKEN");
         }
+
+        let promoId: string | null = null;
+        let discountPence = 0;
+        if (payload.promoCode?.trim()) {
+          const codeNorm = payload.promoCode.trim().toUpperCase();
+          const promo = await tx.promoCode.findUnique({
+            where: {
+              businessId_code: { businessId: business.id, code: codeNorm },
+            },
+          });
+          if (
+            !promo ||
+            !promo.active ||
+            (promo.expiresAt && promo.expiresAt < new Date()) ||
+            (promo.maxUses != null && promo.usedCount >= promo.maxUses) ||
+            (promo.percentOff == null && promo.amountOffPence == null)
+          ) {
+            throw new Error("BAD_PROMO");
+          }
+          discountPence = computeDiscountPence(service.pricePence, promo);
+          if (discountPence <= 0) {
+            throw new Error("BAD_PROMO");
+          }
+          promoId = promo.id;
+          await tx.promoCode.update({
+            where: { id: promo.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+
+        const priceAfter = finalPricePence(service.pricePence, discountPence);
 
         const existingCustomer = await tx.customer.findFirst({
           where: {
@@ -210,7 +328,20 @@ export async function POST(
             endsAt,
             status: BookingStatus.CONFIRMED,
             notes: payload.notes ?? "",
-            pricePenceSnapshot: service.pricePence,
+            staffNotes: "",
+            businessLocationId: bookingLocationId,
+            referredByCustomerId,
+            promoCodeId: promoId,
+            discountPence: discountPence,
+            pricePenceSnapshot: priceAfter,
+            ...(hasIntakeAndAccountingExport(business.subscriptionTier) &&
+            intakeFields.length > 0 &&
+            payload.intakeAnswers
+              ? {
+                  intakeAnswersJson:
+                    payload.intakeAnswers as Prisma.InputJsonValue,
+                }
+              : {}),
           },
           select: {
             id: true,
@@ -222,6 +353,8 @@ export async function POST(
         return {
           ...created,
           ownerEmail: business.owner.email,
+          priceAfter,
+          customerReferralToken: customer.referralToken,
         };
       },
       {
@@ -231,7 +364,6 @@ export async function POST(
       },
     );
 
-    // Fire-and-forget notifications — never block the booking response
     if (hasStandardNotifications) {
       const emailPayload = {
         bookingId: booking.id,
@@ -241,7 +373,7 @@ export async function POST(
         ownerEmail: booking.ownerEmail,
         serviceName: service.name,
         durationMinutes: service.durationMinutes,
-        pricePence: service.pricePence,
+        pricePence: booking.priceAfter,
         startsAt: booking.startsAt,
         endsAt: booking.endsAt,
         customerFullName: payload.customerFullName,
@@ -249,13 +381,16 @@ export async function POST(
         customerPhone: payload.customerPhone,
         notes: payload.notes,
         allowCancelReschedule: business.allowCustomerCancelReschedule,
+        referralShareUrl: customerReferralBookingUrl(
+          business.subdomain,
+          booking.customerReferralToken,
+        ),
       };
       const jobs: Promise<void>[] = [
         sendCustomerConfirmation(emailPayload),
         sendOwnerNotification(emailPayload),
       ];
-      // SMS confirmation for Premium tier when customer provided a phone number
-      if (business.subscriptionTier === "PREMIUM" && payload.customerPhone) {
+      if (hasSmsFeatures(business.subscriptionTier) && payload.customerPhone) {
         jobs.push(
           sendBookingConfirmationSms({
             customerName: payload.customerFullName,
@@ -269,8 +404,7 @@ export async function POST(
       }
       Promise.all(jobs).catch(() => null);
 
-      // Calendar sync (Premium, fire-and-forget)
-      if (business.subscriptionTier === "PREMIUM") {
+      if (hasPremiumFeatures(business.subscriptionTier)) {
         const calPayload = {
           businessId: business.id,
           bookingId: booking.id,
@@ -301,6 +435,9 @@ export async function POST(
         "That slot was just booked — pick another time.",
         409,
       );
+    }
+    if (error instanceof Error && error.message === "BAD_PROMO") {
+      return jsonError("That promo code is not valid or has expired.", 422);
     }
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

@@ -13,7 +13,8 @@ const tiers = [
     price: "£14.99",
     period: "/month",
     tagline: "Perfect to get started",
-    description: "Everything you need to take bookings online and manage your calendar.",
+    description:
+      "Online bookings with an in-app checklist, referrals, internal notes, and promo codes.",
     featured: false,
     cta: "Start with Basic",
     bullets: [
@@ -22,6 +23,10 @@ const tiers = [
       "Working hours & holiday blocks",
       "Owner dashboard with calendar & bookings list",
       "Buffer time between appointments",
+      "In-app checklist to finish setup with confidence",
+      "Referral tools to reward clients who bring friends",
+      "Internal notes on bookings (team-only)",
+      "Promo codes for campaigns and discounts",
     ],
   },
   {
@@ -29,7 +34,8 @@ const tiers = [
     price: "£29.99",
     period: "/month",
     tagline: "Most popular for growing businesses",
-    description: "Everything in Basic, plus your team and automatic notifications.",
+    description:
+      "Everything in Basic, plus your team, notifications, client intake forms, and accounting exports.",
     featured: true,
     cta: "Start free trial",
     bullets: [
@@ -38,6 +44,8 @@ const tiers = [
       "Staff management with individual hours",
       "Customers can pick a preferred team member",
       "24-hour appointment reminders",
+      "Client intake forms attached to bookings",
+      "Export bookings & payments for accounting (CSV)",
     ],
   },
   {
@@ -45,7 +53,8 @@ const tiers = [
     price: "£49.99",
     period: "/month",
     tagline: "For ambitious businesses",
-    description: "Everything in Standard, plus advanced branding and integrations.",
+    description:
+      "Everything in Standard, plus calendar sync, full branding, multi-location, and growth tools.",
     featured: false,
     cta: "Start free trial",
     bullets: [
@@ -53,6 +62,9 @@ const tiers = [
       "Full branding: logo, colours, font",
       "Customers can cancel & reschedule via link",
       "Advanced analytics and revenue charts",
+      "Multi-location: separate calendars and staff per site",
+      "Automated review prompts after appointments",
+      "Template library for services and reminder copy",
       "Priority support",
     ],
   },

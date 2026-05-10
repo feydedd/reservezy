@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
+import {
+  hasIntakeAndAccountingExport,
+  hasPremiumFeatures,
+} from "@/lib/subscription/tiers";
+import { intakeFieldSchema } from "@/lib/intake/fields";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +19,8 @@ const createSchema = z.object({
   durationMinutes: z.number().int().min(5).max(480),
   pricePence: z.number().int().min(0),
   isActive: z.boolean().optional().default(true),
+  intakeFormFields: z.array(intakeFieldSchema).max(20).optional(),
+  businessLocationId: z.string().cuid().nullable().optional(),
 });
 
 export async function GET(): Promise<Response> {
@@ -40,15 +47,49 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return jsonError("Validation failed.", 422, parsed.error.flatten().fieldErrors);
 
+  if (
+    parsed.data.intakeFormFields !== undefined &&
+    !hasIntakeAndAccountingExport(ctx.subscriptionTier)
+  ) {
+    return jsonError("Intake forms require Standard or Premium.", 403);
+  }
+
+  if (
+    parsed.data.businessLocationId &&
+    !hasPremiumFeatures(ctx.subscriptionTier)
+  ) {
+    return jsonError("Locations are a Premium feature.", 403);
+  }
+
+  if (parsed.data.businessLocationId) {
+    const loc = await prisma.businessLocation.findFirst({
+      where: {
+        id: parsed.data.businessLocationId,
+        businessId: ctx.businessId,
+      },
+    });
+    if (!loc) {
+      return jsonError("Invalid location.", 404);
+    }
+  }
+
   const maxOrder = await prisma.service.aggregate({
     _max: { sortOrder: true },
     where: { businessId: ctx.businessId },
   });
 
+  const { intakeFormFields, businessLocationId, ...restCreate } = parsed.data;
+
   const service = await prisma.service.create({
     data: {
       businessId: ctx.businessId,
-      ...parsed.data,
+      ...restCreate,
+      ...(intakeFormFields !== undefined
+        ? { intakeFormFieldsJson: intakeFormFields }
+        : {}),
+      ...(businessLocationId !== undefined
+        ? { businessLocationId }
+        : {}),
       sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
     },
   });

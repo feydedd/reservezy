@@ -50,12 +50,21 @@ export async function PATCH(
     }
   }
 
+  const data: { status?: typeof parsed.data.status; staffNotes?: string } = {};
+  if (parsed.data.status !== undefined) {
+    data.status = parsed.data.status;
+  }
+  if (parsed.data.staffNotes !== undefined) {
+    data.staffNotes = parsed.data.staffNotes;
+  }
+
   const updated = await prisma.booking.update({
     where: { id: booking.id },
-    data: { status: parsed.data.status },
+    data,
     select: {
       id: true,
       status: true,
+      staffNotes: true,
     },
   });
 

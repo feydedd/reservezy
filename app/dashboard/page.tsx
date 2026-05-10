@@ -4,6 +4,7 @@ import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardStats } from "@/lib/server/dashboard-stats";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { BookingLinkWidget } from "@/components/dashboard/booking-link-widget";
+import { SetupChecklist } from "@/components/dashboard/setup-checklist";
 
 function formatMoney(pence: number): string {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
@@ -26,6 +27,8 @@ export default async function DashboardHomePage() {
           · {ctx.role === "BUSINESS_OWNER" ? "Owner" : "Staff"}
         </p>
       </div>
+
+      {ctx.role === "BUSINESS_OWNER" && <SetupChecklist />}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

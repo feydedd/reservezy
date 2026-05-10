@@ -55,7 +55,8 @@ export async function GET(request: Request): Promise<Response> {
     include: {
       service:     { select: { name: true } },
       staffMember: { select: { fullName: true, id: true } },
-      customer:    { select: { fullName: true, email: true, phone: true } },
+      customer:    { select: { fullName: true, email: true, phone: true, referralToken: true } },
+      businessLocation: { select: { id: true, name: true } },
     },
   });
 
@@ -66,10 +67,14 @@ export async function GET(request: Request): Promise<Response> {
       endsAt: row.endsAt.toISOString(),
       status: row.status,
       notes: row.notes,
+      staffNotes: row.staffNotes,
+      intakeAnswersJson: row.intakeAnswersJson,
+      discountPence: row.discountPence,
       pricePenceSnapshot: row.pricePenceSnapshot,
       service:     row.service,
       staffMember: row.staffMember,
       customer:    row.customer,
+      businessLocation: row.businessLocation,
     })),
   });
 }

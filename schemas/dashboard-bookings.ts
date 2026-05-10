@@ -29,11 +29,16 @@ export const dashboardBookingListQuerySchema = z.object({
 });
 
 export const dashboardBookingStatusPatchSchema = z.object({
-  status: z.enum([
-    "CONFIRMED",
-    "CANCELLED",
-    "COMPLETED",
-    "NO_SHOW",
-    "PENDING_PAYMENT",
-  ]),
+  status: z
+    .enum([
+      "CONFIRMED",
+      "CANCELLED",
+      "COMPLETED",
+      "NO_SHOW",
+      "PENDING_PAYMENT",
+    ])
+    .optional(),
+  staffNotes: z.string().trim().max(8000).optional(),
+}).refine((v) => v.status !== undefined || v.staffNotes !== undefined, {
+  message: "Provide status and/or staffNotes.",
 });

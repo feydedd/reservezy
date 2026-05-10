@@ -104,6 +104,16 @@ model Business {
   branding      Branding?
   subscriptions Subscription[]
   calendarIntegrations CalendarIntegration[]
+  promoCodes    PromoCode[]
+  locations     BusinessLocation[]
+
+  /// Dismissed checklist item ids (strings), e.g. ["stripe","services"]
+  checklistDismissedIds Json @default("[]")
+
+  /// After COMPLETED, send customer a review link (Premium).
+  reviewPromptEnabled Boolean @default(false)
+  /// e.g. Google Maps review URL
+  reviewUrl           String?
 }
 
 model Owner {
@@ -139,6 +149,10 @@ model StaffMember {
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  /// Premium multi-location: null = works at every site.
+  businessLocationId String?
+  businessLocation   BusinessLocation? @relation(fields: [businessLocationId], references: [id], onDelete: SetNull)
+
   fullName String
   email    String
   passwordHash String?
@@ -154,6 +168,7 @@ model StaffMember {
 
   @@unique([businessId, email])
   @@index([businessId])
+  @@index([businessLocationId])
 }
 
 model Service {
@@ -164,6 +179,10 @@ model Service {
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  /// Premium multi-location: null = offered at every site.
+  businessLocationId String?
+  businessLocation   BusinessLocation? @relation(fields: [businessLocationId], references: [id], onDelete: SetNull)
+
   name         String
   description  String @default("")
   durationMinutes Int
@@ -171,11 +190,15 @@ model Service {
   isActive       Boolean @default(true)
   sortOrder      Int     @default(0)
 
+  /// Standard+ intake: JSON array of { id, label, type: "text"|"textarea", required }
+  intakeFormFieldsJson Json @default("[]")
+
   bookings  Booking[]
   timeSlots TimeSlot[]
   staff     StaffMember[]
 
   @@index([businessId, isActive])
+  @@index([businessLocationId])
 }
 
 /// Discrete bookable openings (often used when `SlotMode.FIXED`); optional linkage to confirmed `Booking`.
@@ -230,6 +253,23 @@ model Booking {
   /// Customer-provided booking notes / special requests.
   notes String @default("")
 
+  /// Staff-only notes (never shown to the customer).
+  staffNotes String @default("")
+
+  /// Standard+ answers keyed by intake field id.
+  intakeAnswersJson Json?
+
+  businessLocationId String?
+  businessLocation   BusinessLocation? @relation(fields: [businessLocationId], references: [id], onDelete: SetNull)
+
+  /// Customer who referred the booker (same business).
+  referredByCustomerId String?
+  referredByCustomer   Customer? @relation("ReferralBookings", fields: [referredByCustomerId], references: [id], onDelete: SetNull)
+
+  promoCodeId String?
+  promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  discountPence Int @default(0)
+
   /// Snapshot of price in pence when booked (for analytics/revenue reporting).
   pricePenceSnapshot Int @default(0)
 
@@ -238,12 +278,15 @@ model Booking {
 
   reminderEmailSentAt DateTime? @db.Timestamptz(3)
   reminderSmsSentAt   DateTime? @db.Timestamptz(3)
+  reviewPromptSentAt  DateTime? @db.Timestamptz(3)
 
   googleCalendarEventId String?
   microsoftEventId       String?
 
   @@index([businessId, startsAt])
   @@index([businessId, status])
+  @@index([businessLocationId])
+  @@index([referredByCustomerId])
 }
 
 model Customer {
@@ -258,10 +301,57 @@ model Customer {
   email    String
   phone    String @default("")
 
-  bookings Booking[]
+  /// Share `?ref=` on the public booking page to attribute new bookings.
+  referralToken String @unique @default(cuid())
+
+  bookings           Booking[]
+  referralBookings   Booking[] @relation("ReferralBookings")
 
   @@unique([businessId, email])
   @@index([businessId, email])
+}
+
+model PromoCode {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  /// Normalised uppercase, unique per business
+  code String
+
+  percentOff     Int?
+  amountOffPence Int?
+
+  active     Boolean   @default(true)
+  expiresAt  DateTime? @db.Timestamptz(3)
+  maxUses    Int?
+  usedCount  Int       @default(0)
+
+  bookings Booking[]
+
+  @@unique([businessId, code])
+  @@index([businessId])
+}
+
+model BusinessLocation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  name      String
+  sortOrder Int    @default(0)
+
+  staffMembers StaffMember[]
+  services     Service[]
+  bookings     Booking[]
+
+  @@index([businessId])
 }
 
 /// Stripe subscription snapshot (one active row per business).

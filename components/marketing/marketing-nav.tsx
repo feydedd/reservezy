@@ -32,7 +32,7 @@ export function MarketingNav({ variant = "default" }: MarketingNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition hover:bg-white/[0.07] hover:text-white"
+              className="rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition-all duration-200 hover:bg-white/[0.07] hover:text-white"
             >
               {item.label}
             </Link>
@@ -44,13 +44,13 @@ export function MarketingNav({ variant = "default" }: MarketingNavProps) {
       <div className="flex items-center gap-2 sm:gap-3">
         <Link
           href="/login"
-          className="hidden rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition hover:text-white sm:inline"
+          className="hidden rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition-all duration-200 hover:text-white sm:inline"
         >
           Sign in
         </Link>
         <Link
           href="/signup"
-          className="rz-glow rounded-full bg-gradient-to-r from-[#8b86f9] to-[#6d66f0] px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+          className="rz-glow rounded-full bg-gradient-to-r from-[#8b86f9] to-[#6d66f0] px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
         >
           Start free
         </Link>

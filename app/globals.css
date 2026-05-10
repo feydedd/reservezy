@@ -168,4 +168,25 @@ textarea::placeholder {
   .text-balance {
     text-wrap: balance;
   }
+
+  .rz-slot-booked {
+    @apply bg-gradient-to-br from-[#8b86f9]/90 to-[#5b54e6];
+    box-shadow: 0 0 12px rgba(139, 134, 249, 0.45);
+  }
+
+  @keyframes rz-slot-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 10px rgba(139, 134, 249, 0.35);
+      filter: brightness(1);
+    }
+    50% {
+      box-shadow: 0 0 22px rgba(139, 134, 249, 0.55);
+      filter: brightness(1.08);
+    }
+  }
+
+  .animate-rz-slot-pulse {
+    animation: rz-slot-pulse 3.2s ease-in-out infinite;
+  }
 }

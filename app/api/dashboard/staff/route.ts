@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
+import { hasPremiumFeatures } from "@/lib/subscription/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ const createSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   serviceIds: z.array(z.string()).optional().default([]),
+  businessLocationId: z.string().cuid().nullable().optional(),
 });
 
 export async function GET(): Promise<Response> {
@@ -41,6 +43,25 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return jsonError("Validation failed.", 422, parsed.error.flatten().fieldErrors);
 
+  if (
+    parsed.data.businessLocationId &&
+    !hasPremiumFeatures(ctx.subscriptionTier)
+  ) {
+    return jsonError("Locations are a Premium feature.", 403);
+  }
+
+  if (parsed.data.businessLocationId) {
+    const loc = await prisma.businessLocation.findFirst({
+      where: {
+        id: parsed.data.businessLocationId,
+        businessId: ctx.businessId,
+      },
+    });
+    if (!loc) {
+      return jsonError("Invalid location.", 404);
+    }
+  }
+
   const existing = await prisma.staffMember.findFirst({
     where: { businessId: ctx.businessId, email: parsed.data.email },
   });
@@ -57,6 +78,7 @@ export async function POST(req: Request): Promise<Response> {
       fullName: parsed.data.fullName,
       email: parsed.data.email,
       passwordHash: passwordHash ?? null,
+      businessLocationId: parsed.data.businessLocationId ?? undefined,
       offeredServices: parsed.data.serviceIds.length
         ? { connect: parsed.data.serviceIds.map((id) => ({ id })) }
         : undefined,

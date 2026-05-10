@@ -9,13 +9,23 @@ const tierInfo = {
     label: "Basic",
     price: "£14.99/mo",
     color: "text-slate-300",
-    features: ["Public booking page", "Calendar & bookings dashboard", "Buffer time & holidays"],
+    features: [
+      "Public booking page & calendar dashboard",
+      "In-app checklist, referrals & promo codes",
+      "Internal notes (team-only)",
+      "Buffer time & holidays",
+    ],
   },
   STANDARD: {
     label: "Standard",
     price: "£29.99/mo",
     color: "text-rz-accent",
-    features: ["Everything in Basic", "Email & SMS notifications", "Staff management", "Customer staff selection"],
+    features: [
+      "Everything in Basic",
+      "Email & SMS notifications & staff tools",
+      "Client intake forms",
+      "Accounting export (CSV)",
+    ],
   },
   PREMIUM: {
     label: "Premium",
@@ -25,8 +35,8 @@ const tierInfo = {
       "Everything in Standard",
       "Google Calendar & Outlook sync",
       "Custom branding (logo, colours, fonts)",
-      "Full analytics dashboard",
-      "Customer cancel & reschedule links",
+      "Full analytics & cancel/reschedule links",
+      "Multi-location, review prompts & template library",
     ],
   },
 };

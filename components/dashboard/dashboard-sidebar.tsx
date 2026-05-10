@@ -14,6 +14,10 @@ import {
   UserCircle,
   ExternalLink,
   Phone,
+  Percent,
+  MapPin,
+  Star,
+  BookOpen,
 } from "lucide-react";
 
 import { hasPremiumFeatures, hasStandardNotifications } from "@/lib/subscription/tiers";
@@ -44,6 +48,10 @@ function ownerNav(_tier: SubscriptionTier, subdomain: string): NavItem[] {
     { href: "/dashboard/services",         label: "Services",       Icon: Briefcase },
     { href: "/dashboard/availability",     label: "Availability",   Icon: Clock },
     { href: "/dashboard/booking-settings", label: "Booking rules",  Icon: Settings2 },
+    { href: "/dashboard/promos",           label: "Promo codes",    Icon: Percent },
+    { href: "/dashboard/locations",        label: "Locations",      Icon: MapPin },
+    { href: "/dashboard/reviews",          label: "Review prompts", Icon: Star },
+    { href: "/dashboard/templates",        label: "Templates",      Icon: BookOpen },
     { href: "/dashboard/branding",         label: "Branding",       Icon: Palette },
     { href: "/dashboard/integrations",     label: "Calendars",      Icon: Link2 },
     { href: "/dashboard/ivr",              label: "Phone IVR",      Icon: Phone },
@@ -131,8 +139,8 @@ export function DashboardSidebar({ ctx }: DashboardSidebarProps) {
           </p>
           <p className="mt-1 text-xs leading-relaxed text-rz-subtle">
             {!standard
-              ? "Unlock email & SMS reminders and team management."
-              : "Unlock calendar sync, custom branding, and analytics."}
+              ? "Unlock email & SMS reminders, intake forms, and accounting export."
+              : "Unlock calendar sync, multi-location, review prompts, and the template library."}
           </p>
           <Link
             href="/dashboard/subscription"

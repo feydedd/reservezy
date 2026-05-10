@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
+import { hasPremiumFeatures } from "@/lib/subscription/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ const updateSchema = z.object({
   password: z.string().min(8).optional(),
   isActive: z.boolean().optional(),
   serviceIds: z.array(z.string()).optional(),
+  businessLocationId: z.string().cuid().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: RouteParams): Promise<Response> {
@@ -34,6 +36,25 @@ export async function PATCH(req: Request, { params }: RouteParams): Promise<Resp
 
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return jsonError("Validation failed.", 422, parsed.error.flatten().fieldErrors);
+
+  if (
+    parsed.data.businessLocationId &&
+    !hasPremiumFeatures(ctx.subscriptionTier)
+  ) {
+    return jsonError("Locations are a Premium feature.", 403);
+  }
+
+  if (parsed.data.businessLocationId) {
+    const loc = await prisma.businessLocation.findFirst({
+      where: {
+        id: parsed.data.businessLocationId,
+        businessId: ctx.businessId,
+      },
+    });
+    if (!loc) {
+      return jsonError("Invalid location.", 404);
+    }
+  }
 
   const { serviceIds, password, ...rest } = parsed.data;
   let passwordHash: string | undefined;

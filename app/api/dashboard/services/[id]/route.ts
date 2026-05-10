@@ -1,10 +1,15 @@
 import { z } from "zod";
 
+import { intakeFieldSchema } from "@/lib/intake/fields";
 import { jsonError, jsonOk } from "@/lib/http/api-response";
 import { prisma } from "@/lib/prisma";
 import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
+import {
+  hasIntakeAndAccountingExport,
+  hasPremiumFeatures,
+} from "@/lib/subscription/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +22,8 @@ const updateSchema = z.object({
   pricePence: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
+  intakeFormFields: z.array(intakeFieldSchema).max(20).optional(),
+  businessLocationId: z.string().cuid().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: RouteParams): Promise<Response> {
@@ -35,9 +42,42 @@ export async function PATCH(req: Request, { params }: RouteParams): Promise<Resp
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return jsonError("Validation failed.", 422, parsed.error.flatten().fieldErrors);
 
+  if (
+    parsed.data.intakeFormFields !== undefined &&
+    !hasIntakeAndAccountingExport(ctx.subscriptionTier)
+  ) {
+    return jsonError("Intake forms require Standard or Premium.", 403);
+  }
+
+  if (
+    parsed.data.businessLocationId !== undefined &&
+    parsed.data.businessLocationId !== null &&
+    !hasPremiumFeatures(ctx.subscriptionTier)
+  ) {
+    return jsonError("Locations are a Premium feature.", 403);
+  }
+
+  if (parsed.data.businessLocationId) {
+    const loc = await prisma.businessLocation.findFirst({
+      where: {
+        id: parsed.data.businessLocationId,
+        businessId: ctx.businessId,
+      },
+    });
+    if (!loc) {
+      return jsonError("Invalid location.", 404);
+    }
+  }
+
+  const { intakeFormFields, ...rest } = parsed.data;
   const updated = await prisma.service.update({
     where: { id: params.id },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(intakeFormFields !== undefined
+        ? { intakeFormFieldsJson: intakeFormFields }
+        : {}),
+    },
   });
 
   return jsonOk({ service: updated });

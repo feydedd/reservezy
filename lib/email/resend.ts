@@ -52,6 +52,8 @@ export type BookingEmailPayload = {
   customerPhone?: string;
   notes?: string;
   allowCancelReschedule: boolean;
+  /** Friend-referral link including this customer’s ?ref= token */
+  referralShareUrl?: string;
 };
 
 /* ── Shared HTML wrapper ────────────────────── */
@@ -110,6 +112,11 @@ export async function sendCustomerConfirmation(
        <div class="label">Reference</div>
        <div class="value" style="font-family:monospace;font-size:13px">${p.bookingId}</div>
        ${p.notes ? `<div class="label">Your notes</div><div class="value">${p.notes}</div>` : ""}
+       ${
+         p.referralShareUrl
+           ? `<div class="note" style="margin-top:20px">Know someone who would love ${p.businessName}? Share your personal booking link — when they book, we will attribute the referral:<br/><br/><a href="${p.referralShareUrl}" style="word-break:break-all;color:#6d66f0;font-weight:600">${p.referralShareUrl}</a></div>`
+           : ""
+       }
        <hr class="divider" />
        ${
          p.allowCancelReschedule
@@ -127,6 +134,7 @@ export async function sendCustomerConfirmation(
     `When: ${formatDateTime(p.startsAt)}`,
     `Reference: ${p.bookingId}`,
     p.notes ? `Notes: ${p.notes}` : "",
+    p.referralShareUrl ? `Refer a friend: ${p.referralShareUrl}` : "",
     "",
     p.allowCancelReschedule
       ? `Manage your booking: ${manageUrl}`
@@ -236,5 +244,43 @@ export async function sendCustomerReminder(payload: {
     });
   } catch (err) {
     console.error("[resend] reminder failed", err);
+  }
+}
+
+/* ── Post-visit review prompt (Premium, cron) ───────── */
+
+export async function sendReviewPromptEmail(payload: {
+  customerEmail: string;
+  customerFirstName: string;
+  businessName: string;
+  serviceName: string;
+  reviewUrl: string;
+}): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const html = wrapHtml(
+    `How was your visit? — ${payload.businessName}`,
+    `<div class="header">
+       <h1>We would love your feedback</h1>
+       <p>${payload.businessName}</p>
+     </div>
+     <div class="body">
+       <p style="font-size:15px;color:#1e1e2e">Hi ${payload.customerFirstName},<br/><br/>
+       Thanks for visiting for <strong>${payload.serviceName}</strong>. If you have a moment, leaving a short review helps other clients discover ${payload.businessName}.</p>
+       <a href="${payload.reviewUrl}" class="cta">Leave a review →</a>
+     </div>`,
+  );
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: payload.customerEmail,
+      subject: `How was ${payload.serviceName}? — ${payload.businessName}`,
+      html,
+      text: `Hi ${payload.customerFirstName},\n\nThanks for visiting ${payload.businessName}. Leave a review: ${payload.reviewUrl}`,
+    });
+  } catch (err) {
+    console.error("[resend] review prompt failed", err);
   }
 }

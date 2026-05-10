@@ -1,7 +1,14 @@
 "use client";
 
+import type { SubscriptionTier } from "@prisma/client";
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, X, Check, Clock, PoundSterling } from "lucide-react";
+
+import { parseIntakeFieldsJson } from "@/lib/intake/fields";
+import {
+  hasIntakeAndAccountingExport,
+  hasPremiumFeatures,
+} from "@/lib/subscription/tiers";
 
 type Service = {
   id: string;
@@ -11,6 +18,8 @@ type Service = {
   pricePence: number;
   isActive: boolean;
   sortOrder: number;
+  intakeFormFieldsJson?: unknown;
+  businessLocationId?: string | null;
 };
 
 type FormState = {
@@ -19,6 +28,8 @@ type FormState = {
   durationMinutes: number | "";
   pricePence: number | "";
   isActive: boolean;
+  intakeJsonText: string;
+  businessLocationId: string;
 };
 
 const DEFAULT_FORM: FormState = {
@@ -27,13 +38,23 @@ const DEFAULT_FORM: FormState = {
   durationMinutes: 60,
   pricePence: 0,
   isActive: true,
+  intakeJsonText: "[]",
+  businessLocationId: "",
 };
 
 function fmt(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 }
 
-export default function ServicesManager() {
+export default function ServicesManager({
+  subscriptionTier,
+  locations,
+}: {
+  subscriptionTier: SubscriptionTier;
+  locations: Array<{ id: string; name: string }>;
+}) {
+  const canIntake = hasIntakeAndAccountingExport(subscriptionTier);
+  const canLocation = hasPremiumFeatures(subscriptionTier);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,12 +90,15 @@ export default function ServicesManager() {
 
   function openEdit(svc: Service) {
     setEditing(svc);
+    const fields = parseIntakeFieldsJson(svc.intakeFormFieldsJson);
     setForm({
       name: svc.name,
       description: svc.description ?? "",
       durationMinutes: svc.durationMinutes,
       pricePence: svc.pricePence,
       isActive: svc.isActive,
+      intakeJsonText: JSON.stringify(fields, null, 2),
+      businessLocationId: svc.businessLocationId ?? "",
     });
     setFormError("");
     setModal("edit");
@@ -84,13 +108,28 @@ export default function ServicesManager() {
     setSaving(true);
     setFormError("");
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         name: form.name,
         description: form.description,
         durationMinutes: Number(form.durationMinutes),
         pricePence: Math.round(Number(form.pricePence) * 100),
         isActive: form.isActive,
       };
+
+      if (canIntake) {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(form.intakeJsonText.trim() || "[]");
+        } catch {
+          throw new Error("Intake form must be valid JSON.");
+        }
+        body.intakeFormFields = parseIntakeFieldsJson(parsed);
+      }
+
+      if (canLocation) {
+        body.businessLocationId =
+          form.businessLocationId === "" ? null : form.businessLocationId;
+      }
 
       const url = modal === "edit" && editing ? `/api/dashboard/services/${editing.id}` : "/api/dashboard/services";
       const method = modal === "edit" ? "PATCH" : "POST";
@@ -304,6 +343,47 @@ export default function ServicesManager() {
                 </button>
                 <span className="text-sm text-rz-muted">Show to customers</span>
               </label>
+
+              {canLocation && locations.length > 0 && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-rz-muted">
+                    Location (Premium)
+                  </label>
+                  <select
+                    className="rz-field"
+                    value={form.businessLocationId}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, businessLocationId: e.target.value }))
+                    }
+                  >
+                    <option value="">All locations</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {canIntake && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-rz-muted">
+                    Intake form (Standard+) — JSON array
+                  </label>
+                  <textarea
+                    className="rz-field min-h-[140px] font-mono text-xs"
+                    value={form.intakeJsonText}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, intakeJsonText: e.target.value }))
+                    }
+                    spellCheck={false}
+                  />
+                  <p className="mt-1 text-xs text-rz-subtle">
+                    Each entry needs id, label, type (text or textarea), and required (boolean).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-3">

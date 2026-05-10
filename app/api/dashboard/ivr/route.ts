@@ -41,8 +41,11 @@ export async function PATCH(req: Request): Promise<Response> {
   const session = await getReservezySession();
   const ctx = await loadDashboardBusinessContext(session);
   if (!ctx) return jsonError("Unauthorised.", 401);
-  const guard = requireBusinessOwner(ctx);
-  if (guard) return guard;
+  try {
+    requireBusinessOwner(ctx);
+  } catch {
+    return jsonError("Forbidden.", 403);
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);

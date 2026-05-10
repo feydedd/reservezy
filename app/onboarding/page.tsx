@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
 import {
   CheckoutReturnBanner,
@@ -16,13 +15,8 @@ export default async function OnboardingPage() {
     redirect("/login?callbackUrl=/onboarding");
   }
 
-  if (session.user.role === "SUPER_ADMIN") {
-    redirect("/platform-admin");
-  }
-
-  if (session.user.role === "STAFF") {
-    redirect("/dashboard");
-  }
+  if (session.user.role === "SUPER_ADMIN") redirect("/platform-admin");
+  if (session.user.role === "STAFF") redirect("/dashboard");
 
   if (
     session.user.role !== "BUSINESS_OWNER" ||
@@ -33,48 +27,38 @@ export default async function OnboardingPage() {
 
   const business = await prisma.business.findUnique({
     where: { ownerId: session.user.ownerId },
-    select: {
-      id: true,
-      onboardingComplete: true,
-      name: true,
-    },
+    select: { id: true, onboardingComplete: true, name: true },
   });
 
-  if (!business) {
-    redirect("/signup");
-  }
-
-  if (business.onboardingComplete) {
-    redirect("/dashboard");
-  }
+  if (!business) redirect("/signup");
+  if (business.onboardingComplete) redirect("/dashboard");
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-10">
+    <div className="mx-auto flex max-w-4xl flex-col gap-8">
       <Suspense fallback={null}>
         <CheckoutReturnBanner />
       </Suspense>
 
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.4em] text-emerald-600">
-          Setup · steps 3 to 8
+      {/* Page header */}
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-rz-accent/70">
+          Setup — steps 3 to 8
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-zinc-900">
-            Calibrate Reservezy · {business.name}
+          <h1 className="text-2xl font-extrabold text-white">
+            Set up{" "}
+            <span className="text-rz-accent">{business.name}</span>
           </h1>
-          <Link
-            href="/dashboard"
-            className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-700 underline-offset-2 hover:bg-zinc-200"
-          >
-            Dashboard shortcut
-          </Link>
         </div>
+        <p className="text-sm text-rz-muted">
+          Complete each step to launch your booking page. You can always update these settings later from your dashboard.
+        </p>
       </div>
 
       <Suspense
         fallback={
-          <div className="text-sm font-medium text-zinc-500">
-            Loading wizard…
+          <div className="rounded-2xl border border-white/[0.07] bg-[#13132c]/80 p-10 text-center text-sm text-rz-muted">
+            Loading…
           </div>
         }
       >

@@ -1,12 +1,33 @@
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import AppleProvider from "next-auth/providers/apple";
 
 import { prisma } from "@/lib/prisma";
 import { isReservezyRole } from "@/lib/session-role";
 import { credentialsLoginSchema } from "@/schemas/credentials-login";
 
 const SUPER_ADMIN_FIXED_ID = "reservezy_super_admin";
+
+const oauthProviders = [
+  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? [
+        GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        }),
+      ]
+    : []),
+  ...(process.env.APPLE_ID && process.env.APPLE_SECRET
+    ? [
+        AppleProvider({
+          clientId: process.env.APPLE_ID,
+          clientSecret: process.env.APPLE_SECRET,
+        }),
+      ]
+    : []),
+];
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -16,6 +37,7 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   providers: [
+    ...oauthProviders,
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -58,6 +80,8 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (owner) {
+          // OAuth-only account — no password set
+          if (!owner.passwordHash) return null;
           const ok = await bcrypt.compare(password, owner.passwordHash);
           if (!ok) {
             return null;
@@ -112,16 +136,97 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user && user.role && isReservezyRole(user.role)) {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google" || account?.provider === "apple") {
+        const email = (
+          (profile as { email?: string } | undefined)?.email ?? user.email
+        )
+          ?.trim()
+          .toLowerCase();
+        if (!email) return false;
+
+        const existing = await prisma.owner.findUnique({ where: { email } });
+
+        if (existing) {
+          if (account.provider === "google") {
+            if (existing.googleId && existing.googleId !== account.providerAccountId) {
+              return "/login?error=OAuthAccountNotLinked";
+            }
+            if (!existing.googleId) {
+              await prisma.owner.update({
+                where: { id: existing.id },
+                data: { googleId: account.providerAccountId },
+              });
+            }
+          } else {
+            if (existing.appleId && existing.appleId !== account.providerAccountId) {
+              return "/login?error=OAuthAccountNotLinked";
+            }
+            if (!existing.appleId) {
+              await prisma.owner.update({
+                where: { id: existing.id },
+                data: { appleId: account.providerAccountId },
+              });
+            }
+          }
+        } else {
+          // New OAuth user — create a stub owner (no business yet)
+          const fullName = String(
+            (profile as { name?: string } | undefined)?.name ?? user.name ?? "",
+          );
+          await prisma.owner.create({
+            data: {
+              email,
+              fullName,
+              emailVerified: true,
+              ...(account.provider === "google"
+                ? { googleId: account.providerAccountId }
+                : { appleId: account.providerAccountId }),
+            },
+          });
+        }
+
+        return true;
+      }
+
+      return true;
+    },
+
+    async jwt({ token, user, account, profile }) {
+      // OAuth first sign-in — resolve owner row from DB to populate custom claims
+      if (account?.provider === "google" || account?.provider === "apple") {
+        const email = (
+          (profile as { email?: string } | undefined)?.email ?? user?.email
+        )
+          ?.trim()
+          .toLowerCase();
+        if (email) {
+          const owner = await prisma.owner.findUnique({
+            where: { email },
+            include: { ownedBusiness: true },
+          });
+          if (owner) {
+            token.sub = owner.id;
+            token.role = "BUSINESS_OWNER";
+            token.businessId = owner.ownedBusiness?.id ?? null;
+            token.ownerId = owner.id;
+            token.staffMemberId = null;
+          }
+        }
+        return token;
+      }
+
+      // Credentials provider — user object carries our custom fields
+      if (user && "role" in user && user.role && isReservezyRole(user.role)) {
         token.role = user.role;
-        token.businessId = user.businessId ?? null;
-        token.ownerId = user.ownerId ?? null;
-        token.staffMemberId = user.staffMemberId ?? null;
+        token.businessId = (user as NextAuthUser).businessId ?? null;
+        token.ownerId = (user as NextAuthUser).ownerId ?? null;
+        token.staffMemberId = (user as NextAuthUser).staffMemberId ?? null;
       }
 
       return token;
     },
+
     async session({ session, token }) {
       if (
         typeof token.sub !== "string" ||

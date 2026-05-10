@@ -58,7 +58,7 @@ export const onboardingServicesPatchSchema = z.object({
           sortOrder: z.number().int().min(0).max(10_000).optional(),
         }),
       )
-      .min(1),
+      .default([]),
   }),
 });
 
@@ -109,12 +109,18 @@ export const onboardingBookingRulesPatchSchema = z.object({
   }),
 });
 
+export const onboardingSkipBillingPatchSchema = z.object({
+  step: z.literal("skipBilling"),
+  data: z.object({}).optional(),
+});
+
 export const onboardingPatchSchema = z.discriminatedUnion("step", [
   onboardingBrandingPatchSchema,
   onboardingAvailabilityPatchSchema,
   onboardingServicesPatchSchema,
   onboardingStaffPatchSchema,
   onboardingBookingRulesPatchSchema,
+  onboardingSkipBillingPatchSchema,
 ]);
 
 export type OnboardingPatchPayload = z.infer<typeof onboardingPatchSchema>;

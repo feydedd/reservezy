@@ -53,6 +53,7 @@ export async function PATCH(req: Request): Promise<Response> {
 
     if (newPassword) {
       if (!currentPassword) return jsonError("Current password is required.", 422);
+      if (!owner.passwordHash) return jsonError("No password set — sign in with Google or Apple to change your password.", 422);
       const valid = await bcrypt.compare(currentPassword, owner.passwordHash);
       if (!valid) return jsonError("Current password is incorrect.", 401);
     }

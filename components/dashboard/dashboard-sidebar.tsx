@@ -13,6 +13,7 @@ import {
   CreditCard,
   UserCircle,
   ExternalLink,
+  Phone,
 } from "lucide-react";
 
 import { hasPremiumFeatures, hasStandardNotifications } from "@/lib/subscription/tiers";
@@ -45,6 +46,7 @@ function ownerNav(_tier: SubscriptionTier, subdomain: string): NavItem[] {
     { href: "/dashboard/booking-settings", label: "Booking rules",  Icon: Settings2 },
     { href: "/dashboard/branding",         label: "Branding",       Icon: Palette },
     { href: "/dashboard/integrations",     label: "Calendars",      Icon: Link2 },
+    { href: "/dashboard/ivr",              label: "Phone IVR",      Icon: Phone },
     { href: "/dashboard/subscription",     label: "Plan & billing", Icon: CreditCard },
     { href: "/dashboard/account",          label: "My account",     Icon: UserCircle },
     { href: publicBookingUrl(subdomain),   label: "Booking page",   Icon: ExternalLink },

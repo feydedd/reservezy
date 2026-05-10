@@ -84,6 +84,10 @@ model Business {
 
   isDisabled Boolean @default(false)
 
+  /// Phone IVR (Interactive Voice Response) — powered by Twilio
+  ivrEnabled       Boolean @default(false)
+  ivrForwardNumber String? // E.164 format, e.g. +441234567890
+
   services      Service[]
   staffMembers  StaffMember[]
   customers     Customer[]
@@ -101,9 +105,13 @@ model Owner {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  email           String @unique
-  passwordHash    String
-  fullName        String
+  email        String  @unique
+  passwordHash String? // null for OAuth-only accounts
+  fullName     String
+
+  /// OAuth provider IDs
+  googleId String? @unique
+  appleId  String? @unique
 
   /// Email verification
   emailVerified            Boolean   @default(false)
@@ -111,8 +119,8 @@ model Owner {
   emailVerificationSentAt  DateTime? @db.Timestamptz(3)
 
   /// Password reset
-  passwordResetToken       String?   @unique
-  passwordResetExpiresAt   DateTime? @db.Timestamptz(3)
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime? @db.Timestamptz(3)
 
   ownedBusiness Business?
 }

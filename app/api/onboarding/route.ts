@@ -450,6 +450,19 @@ export async function PATCH(request: Request): Promise<Response> {
       });
       break;
     }
+
+    case "skipBilling": {
+      // Mark onboarding complete without a Stripe subscription.
+      // The booking page remains inactive until a subscription is activated.
+      await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          onboardingComplete: true,
+          onboardingStep: 8,
+        },
+      });
+      break;
+    }
   }
 
   const refreshed = await loadBusinessForOwnerSession(session);

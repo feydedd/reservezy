@@ -1,5 +1,7 @@
 import twilio from "twilio";
 
+import { normalisePhone, isE164 } from "@/lib/phone/normalise";
+
 let _client: ReturnType<typeof twilio> | null = null;
 
 function getClient() {
@@ -33,6 +35,20 @@ function formatLocal(date: Date, timezone: string) {
   });
 }
 
+/**
+ * Ensures the phone number is in E.164 before passing to Twilio.
+ * Returns null if the number cannot be normalised to a plausible format.
+ */
+function preparePhone(raw: string): string | null {
+  if (!raw) return null;
+  const normalised = normalisePhone(raw);
+  if (!isE164(normalised)) {
+    console.warn("[SMS] Phone number could not be normalised to E.164:", raw, "→", normalised, "— skipping SMS.");
+    return null;
+  }
+  return normalised;
+}
+
 export async function sendBookingConfirmationSms(payload: BookingPayload): Promise<void> {
   const client = getClient();
   if (!client || !FROM) {
@@ -40,14 +56,18 @@ export async function sendBookingConfirmationSms(payload: BookingPayload): Promi
     return;
   }
 
+  const to = preparePhone(payload.customerPhone);
+  if (!to) return;
+
   const dateStr = formatLocal(payload.startTime, payload.timezone);
-  const body =
-    `Hi ${payload.customerName}! Your booking for "${payload.serviceName}" at ${payload.businessName} is confirmed for ${dateStr}. See you then! — Reservezy`;
+  const body = `Hi ${payload.customerName.split(" ")[0]}! Your ${payload.serviceName} at ${payload.businessName} is confirmed for ${dateStr}. See you then!`;
 
   try {
-    await client.messages.create({ to: payload.customerPhone, from: FROM, body });
+    await client.messages.create({ to, from: FROM, body });
   } catch (err) {
-    console.error("[SMS] Confirmation send failed:", err);
+    // Log the Twilio error code if available for easier diagnosis
+    const twilioErr = err as { code?: number; message?: string };
+    console.error(`[SMS] Confirmation send failed to ${to} (Twilio code ${twilioErr.code ?? "?"}):`, twilioErr.message ?? err);
   }
 }
 
@@ -58,13 +78,16 @@ export async function sendBookingReminderSms(payload: BookingPayload): Promise<v
     return;
   }
 
+  const to = preparePhone(payload.customerPhone);
+  if (!to) return;
+
   const dateStr = formatLocal(payload.startTime, payload.timezone);
-  const body =
-    `Reminder: "${payload.serviceName}" at ${payload.businessName} is tomorrow — ${dateStr}. See you soon! — Reservezy`;
+  const body = `Reminder: ${payload.serviceName} at ${payload.businessName} — ${dateStr}. See you soon!`;
 
   try {
-    await client.messages.create({ to: payload.customerPhone, from: FROM, body });
+    await client.messages.create({ to, from: FROM, body });
   } catch (err) {
-    console.error("[SMS] Reminder send failed:", err);
+    const twilioErr = err as { code?: number; message?: string };
+    console.error(`[SMS] Reminder send failed to ${to} (Twilio code ${twilioErr.code ?? "?"}):`, twilioErr.message ?? err);
   }
 }

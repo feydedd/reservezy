@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { normalisePhone } from "@/lib/phone/normalise";
+
 const isoInstant = z
   .string()
   .min(10)
@@ -45,7 +47,13 @@ export const publicBookingCreateSchema = z.object({
         });
       }
     }),
-  customerPhone: z.string().trim().max(40).optional().default(""),
+  customerPhone: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .default("")
+    .transform((v) => (v ? normalisePhone(v) : v)),
   notes: z.string().trim().max(2000).optional().default(""),
   promoCode: z.string().trim().min(1).max(40).optional(),
   referralToken: z.string().trim().min(8).max(64).optional(),

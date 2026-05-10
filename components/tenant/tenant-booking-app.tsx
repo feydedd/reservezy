@@ -555,8 +555,12 @@ function TenantBookingInner({ subdomain }: { subdomain: string }) {
             />
           </label>
           <label className="block text-sm font-semibold text-slate-200">
-            Phone
+            Phone <span className="font-normal text-slate-400">(optional — for SMS reminders)</span>
             <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="07700 900000"
               className="mt-1 w-full rounded-xl border border-white/15 bg-[#080810]/90 px-3 py-2 font-normal text-slate-100 placeholder:text-slate-500"
               value={customerPhone}
               onChange={(event) => setCustomerPhone(event.target.value)}

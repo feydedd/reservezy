@@ -6,6 +6,7 @@ import { jsonError, jsonOk } from "@/lib/http/api-response";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { prisma } from "@/lib/prisma";
 import { dashboardBookingListQuerySchema } from "@/schemas/dashboard-bookings";
+import { normalisePhone } from "@/lib/phone/normalise";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ const createBookingSchema = z.object({
   startsAt:       z.string().datetime(),
   customerName:   z.string().trim().min(1).max(120),
   customerEmail:  z.string().trim().email().max(320).transform(v => v.toLowerCase()),
-  customerPhone:  z.string().trim().max(30).optional().default(""),
+  customerPhone:  z.string().trim().max(30).optional().default("").transform(v => v ? normalisePhone(v) : v),
   notes:          z.string().trim().max(2000).optional().default(""),
 });
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { SignOutButton } from "@/components/sign-out-button";
+import { PlanGrantToast } from "@/components/dashboard/plan-grant-toast";
 import { getReservezySession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
@@ -19,14 +20,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect("/platform-admin");
   }
 
+  let adminGrantNote: string | null = null;
+
   if (session.user.role === "BUSINESS_OWNER" && typeof session.user.ownerId === "string") {
     const business = await prisma.business.findUnique({
       where: { ownerId: session.user.ownerId },
-      select: { onboardingComplete: true },
+      select: { onboardingComplete: true, adminGrantNote: true },
     });
     if (business && business.onboardingComplete === false) {
       redirect("/onboarding");
     }
+    adminGrantNote = business?.adminGrantNote ?? null;
   }
 
   const ctx = await loadDashboardBusinessContext(session);
@@ -65,6 +69,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <main className="flex-1 px-6 py-10 animate-fade-in">{children}</main>
         </div>
       </div>
+
+      {adminGrantNote && <PlanGrantToast note={adminGrantNote} />}
     </div>
   );
 }

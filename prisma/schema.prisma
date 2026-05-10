@@ -114,6 +114,9 @@ model Business {
   reviewPromptEnabled Boolean @default(false)
   /// e.g. Google Maps review URL
   reviewUrl           String?
+
+  /// Pending admin-granted plan notification — shown once on next dashboard login then cleared.
+  adminGrantNote String?
 }
 
 model Owner {

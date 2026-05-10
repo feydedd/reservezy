@@ -247,6 +247,51 @@ export async function sendCustomerReminder(payload: {
   }
 }
 
+/* ── Admin plan grant notification ─────────────── */
+
+export async function sendPlanGrantEmail(payload: {
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  tier: string;
+  expiresAt: Date;
+}): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://reservezy.com"}/dashboard`;
+  const tierLabel = payload.tier === "PREMIUM" ? "Premium" : payload.tier === "STANDARD" ? "Standard" : "Basic";
+  const tierColor = payload.tier === "PREMIUM" ? "#fbbf24" : payload.tier === "STANDARD" ? "#a5a0ff" : "#8b86f9";
+
+  const html = wrapHtml(
+    `Your ${tierLabel} plan is now active — Reservezy`,
+    `<div class="header" style="background:linear-gradient(135deg,${tierColor},#6d66f0)">
+       <h1>Your plan has been upgraded! 🎉</h1>
+       <p>${payload.businessName}</p>
+     </div>
+     <div class="body">
+       <p style="font-size:15px;color:#1e1e2e">Hi ${payload.ownerName.split(" ")[0]},</p>
+       <p style="font-size:15px;color:#1e1e2e">Great news — your Reservezy account for <strong>${payload.businessName}</strong> has been upgraded to the <strong style="color:${tierColor}">${tierLabel} plan</strong>.</p>
+       <div class="label">Plan active until</div>
+       <div class="value">${payload.expiresAt.toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+       <div class="note">Log in to your dashboard to start using all your new ${tierLabel} features.</div>
+       <a href="${dashboardUrl}" class="cta">Go to dashboard →</a>
+     </div>`,
+  );
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: payload.ownerEmail,
+      subject: `Your Reservezy ${tierLabel} plan is now active`,
+      html,
+      text: `Hi ${payload.ownerName.split(" ")[0]},\n\nYour Reservezy account (${payload.businessName}) has been upgraded to the ${tierLabel} plan, active until ${payload.expiresAt.toLocaleDateString("en-GB")}.\n\nLog in: ${dashboardUrl}`,
+    });
+  } catch (err) {
+    console.error("[resend] plan grant email failed", err);
+  }
+}
+
 /* ── Post-visit review prompt (Premium, cron) ───────── */
 
 export async function sendReviewPromptEmail(payload: {

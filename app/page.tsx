@@ -9,11 +9,12 @@ import {
   MotionFeatureGrid,
   MotionHeroBadge,
   MotionHeroCtas,
+  MotionHeroParallax,
   MotionHeroSub,
   MotionHeroTitle,
   MotionIndustriesGrid,
   MotionIndustryChip,
-  MotionMockWindow,
+  MotionParallaxLayer,
   MotionPricingStrip,
   MotionReveal,
   MotionSectionHeading,
@@ -21,28 +22,10 @@ import {
   MotionTestimonialsGrid,
 } from "@/components/marketing/home-motion";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
+import { PinnedBookingDemo } from "@/components/marketing/pinned-booking-demo";
+import { SmoothScrollProvider } from "@/components/marketing/smooth-scroll-provider";
 
-/* ── Availability grid mock ── */
-function AvailabilityMock() {
-  const cells = Array.from({ length: 24 }, (_, i) => i);
-  const booked = new Set([2, 3, 8, 9, 14, 15, 19, 20]);
-  return (
-    <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
-      {cells.map((i) => (
-        <div
-          key={i}
-          className={`aspect-square rounded-lg transition-all duration-300 ${
-            booked.has(i)
-              ? "rz-slot-booked animate-rz-slot-pulse"
-              : "bg-white/[0.05] hover:bg-white/[0.09] hover:scale-[1.03]"
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ── Feature cards ── */
+/* ── Features ── */
 const features = [
   {
     icon: "🗓️",
@@ -61,7 +44,6 @@ const features = [
     title: "Real-time availability",
     body: "Always shows accurate open slots — respects working hours, holidays, buffer time, and staff rosters. Zero double bookings.",
     wide: true,
-    mock: true,
   },
   {
     icon: "👥",
@@ -83,7 +65,7 @@ const features = [
   },
 ];
 
-/* ── Industry tags ── */
+/* ── Industries ── */
 const industries = [
   "Hair salon", "Barber", "Beauty & nails", "Massage",
   "Personal trainer", "Yoga & pilates", "Tattoo studio",
@@ -130,108 +112,77 @@ const testimonials = [
 export default function Home() {
   return (
     <div className="rz-radial-hero min-h-screen">
+      <SmoothScrollProvider />
       <MarketingNav />
 
-      {/* ── Hero ── */}
       <main>
-        <section className="relative mx-auto max-w-4xl px-5 pb-16 pt-8 text-center sm:px-8 sm:pt-16 overflow-hidden">
+        {/* ══ Hero ══════════════════════════════════════════════════ */}
+        <section className="relative mx-auto max-w-4xl overflow-hidden px-5 pb-24 pt-8 text-center sm:px-8 sm:pt-16">
           <MotionAmbientOrbs />
 
-          <MotionHeroBadge>
-            <div className="rz-badge mb-8 inline-flex">
-              <span aria-hidden>✨</span>
-              Smart scheduling for small businesses
-            </div>
-          </MotionHeroBadge>
+          <MotionHeroParallax>
+            <MotionHeroBadge>
+              <div className="rz-badge mb-8 inline-flex">
+                <span aria-hidden>✨</span>
+                Smart scheduling for small businesses
+              </div>
+            </MotionHeroBadge>
 
-          <MotionHeroTitle>
-            Bookings that{" "}
-            <span className="bg-gradient-to-r from-[#b0abff] via-[#8b86f9] to-[#7c6df8] bg-clip-text text-transparent">
-              run themselves.
-            </span>
-          </MotionHeroTitle>
+            <MotionHeroTitle>
+              Bookings that{" "}
+              <span className="bg-gradient-to-r from-[#b0abff] via-[#8b86f9] to-[#7c6df8] bg-clip-text text-transparent">
+                run themselves.
+              </span>
+            </MotionHeroTitle>
 
-          <MotionHeroSub>
-            Give your business its own booking page, take payments upfront, and send
-            automatic reminders — without lifting a finger.
-          </MotionHeroSub>
+            <MotionHeroSub>
+              Give your business its own booking page, take payments upfront, and send
+              automatic reminders — without lifting a finger.
+            </MotionHeroSub>
 
-          <MotionHeroCtas>
-            <Link href="/signup" className="rz-btn-primary px-8 py-3.5 text-base">
-              Get started free <span aria-hidden>→</span>
-            </Link>
-            <Link href="/pricing" className="rz-btn-ghost px-8 py-3.5 text-base">
-              See pricing
-            </Link>
-          </MotionHeroCtas>
+            <MotionHeroCtas>
+              <Link href="/signup" className="rz-btn-primary px-8 py-3.5 text-base">
+                Get started free <span aria-hidden>→</span>
+              </Link>
+              <Link href="/pricing" className="rz-btn-ghost px-8 py-3.5 text-base">
+                See pricing
+              </Link>
+            </MotionHeroCtas>
 
-          {/* Social proof */}
-          <MotionReveal delay={0.32} className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-rz-subtle">
-            <span className="flex items-center gap-1.5">
-              <span className="text-yellow-400" aria-hidden>★★★★★</span>
-              Trusted by growing businesses
-            </span>
-            <span className="hidden sm:block text-white/20">|</span>
-            <span>No credit card to start</span>
-            <span className="hidden sm:block text-white/20">|</span>
-            <span>Cancel any time</span>
-          </MotionReveal>
+            <MotionReveal delay={0.32} className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-rz-subtle">
+              <span className="flex items-center gap-1.5">
+                <span className="text-yellow-400" aria-hidden>★★★★★</span>
+                Trusted by growing businesses
+              </span>
+              <span className="hidden sm:block text-white/20">|</span>
+              <span>No credit card to start</span>
+              <span className="hidden sm:block text-white/20">|</span>
+              <span>Cancel any time</span>
+            </MotionReveal>
+
+            <MotionReveal delay={0.45} className="mt-16 flex justify-center">
+              <div className="flex flex-col items-center gap-2 text-xs uppercase tracking-widest text-rz-subtle">
+                <span>Scroll to explore</span>
+                <span className="flex h-9 w-5 items-start justify-center rounded-full border border-white/15 p-1">
+                  <span className="block h-1.5 w-1 animate-bounce rounded-full bg-rz-accent" />
+                </span>
+              </div>
+            </MotionReveal>
+          </MotionHeroParallax>
         </section>
 
-        {/* ── Product mock ── */}
-        <section
-          className="relative mx-auto max-w-5xl px-5 pb-20 sm:px-8"
-          aria-label="Dashboard preview"
-        >
-          <MotionMockWindow>
-            {/* Window chrome */}
-            <div className="flex items-center gap-2 border-b border-white/[0.07] bg-[#10102a] px-4 py-3">
-              <span className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-              </span>
-              <span className="flex-1 text-center font-mono text-xs text-rz-subtle">
-                dashboard · reservezy.com
-              </span>
-            </div>
-            {/* Dashboard preview content */}
-            <div className="grid gap-4 p-5 sm:grid-cols-[1fr_1.25fr] sm:p-8">
-              {/* Stat card */}
-              <div className="space-y-4 rounded-xl border border-white/[0.07] bg-[#0f0f28]/80 p-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-rz-accent">Today</p>
-                <p className="text-4xl font-bold text-white">12</p>
-                <p className="text-sm text-rz-muted">Upcoming bookings</p>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b86f9]" />
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {[["Revenue", "£ 840"], ["This week", "54"]].map(([label, val]) => (
-                    <div key={label} className="rounded-lg bg-white/[0.04] p-2.5">
-                      <p className="text-[10px] uppercase tracking-wider text-rz-subtle">{label}</p>
-                      <p className="mt-0.5 text-base font-bold text-white">{val}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Availability preview */}
-              <div className="rounded-xl border border-white/[0.07] bg-[#0f0f28]/80 p-5">
-                <p className="mb-4 text-sm font-medium text-rz-muted">Live availability</p>
-                <AvailabilityMock />
-                <p className="mt-3 text-xs text-rz-subtle">
-                  <span className="inline-block h-2 w-2 rounded-sm bg-[#8b86f9] align-middle mr-1" />
-                  Booked
-                  <span className="ml-3 inline-block h-2 w-2 rounded-sm bg-white/[0.06] align-middle mr-1" />
-                  Available
-                </p>
-              </div>
-            </div>
-          </MotionMockWindow>
-        </section>
+        {/* ══ ★ Centrepiece: pinned booking flow with calendar fill ════ */}
+        <PinnedBookingDemo />
 
-        {/* ── Features ── */}
-        <section id="features" className="rz-radial-section border-t border-white/[0.05] py-24">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        {/* ══ Features (parallax + stagger) ═════════════════════════ */}
+        <section id="features" className="rz-radial-section relative overflow-hidden border-t border-white/[0.05] py-28">
+          {/* Drifting backdrop blobs */}
+          <MotionParallaxLayer speed={-0.3} className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-32 top-1/4 h-80 w-80 rounded-full bg-[#8b86f9]/8 blur-[100px]" />
+            <div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-[#6d66f0]/8 blur-[90px]" />
+          </MotionParallaxLayer>
+
+          <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
             <MotionSectionHeading className="mx-auto max-w-2xl text-center">
               <p className="rz-badge mb-4 inline-flex">Everything you need</p>
               <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
@@ -254,11 +205,6 @@ export default function Home() {
                     </div>
                     <h3 className="text-[1.05rem] font-bold text-white">{f.title}</h3>
                     <p className="text-sm leading-relaxed text-rz-muted">{f.body}</p>
-                    {f.mock ? (
-                      <div className="mt-3 rounded-xl border border-white/[0.06] bg-[#09091a]/70 p-4">
-                        <AvailabilityMock />
-                      </div>
-                    ) : null}
                   </article>
                 </MotionFeatureCard>
               ))}
@@ -266,9 +212,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Industries ── */}
-        <section id="businesses" className="border-t border-white/[0.05] py-20">
-          <div className="mx-auto max-w-4xl px-5 text-center sm:px-8">
+        {/* ══ Industries (chips with stagger) ═══════════════════════ */}
+        <section id="businesses" className="relative overflow-hidden border-t border-white/[0.05] py-24">
+          <MotionParallaxLayer speed={0.2} className="pointer-events-none absolute inset-0">
+            <div className="absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-[#38bdf8]/6 blur-[100px]" />
+          </MotionParallaxLayer>
+
+          <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
             <MotionSectionHeading>
               <p className="rz-badge mb-4 inline-flex">Made for your industry</p>
               <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
@@ -293,18 +243,24 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Testimonials ── */}
-        <section className="border-t border-white/[0.05] py-20">
+        {/* ══ Testimonials ══════════════════════════════════════════ */}
+        <section className="relative border-t border-white/[0.05] py-24">
           <div className="mx-auto max-w-5xl px-5 sm:px-8">
-            <MotionReveal className="mb-12 text-center">
-              <h2 className="text-2xl font-bold text-white">
+            <MotionReveal className="mb-14 text-center">
+              <h2 className="text-3xl font-extrabold text-white">
                 Real businesses, real results
               </h2>
+              <p className="mx-auto mt-3 max-w-md text-base text-rz-muted">
+                Owners like you turning Reservezy into bookings.
+              </p>
             </MotionReveal>
 
             <MotionTestimonialsGrid className="grid gap-5 sm:grid-cols-3">
               {testimonials.map((t) => (
-                <MotionTestimonialCard key={t.author} className="rz-card p-6 cursor-default">
+                <MotionTestimonialCard
+                  key={t.author}
+                  className="rz-card cursor-default p-6 transition-shadow hover:shadow-[0_24px_60px_rgba(0,0,0,0.4)]"
+                >
                   <p className="text-sm leading-relaxed text-rz-muted">
                     &ldquo;{t.quote}&rdquo;
                   </p>
@@ -317,11 +273,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Pricing CTA strip ── */}
-        <section className="border-t border-white/[0.05] py-16">
+        {/* ══ Pricing CTA ═══════════════════════════════════════════ */}
+        <section className="border-t border-white/[0.05] py-20">
           <MotionPricingStrip className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 px-5 sm:flex-row sm:px-8">
             <div>
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-2xl font-bold text-white sm:text-3xl">
                 Simple, transparent pricing
               </h2>
               <p className="mt-2 text-base text-rz-muted">
@@ -329,17 +285,14 @@ export default function Home() {
                 No hidden fees.
               </p>
             </div>
-            <Link
-              href="/pricing"
-              className="rz-btn-ghost shrink-0"
-            >
+            <Link href="/pricing" className="rz-btn-ghost shrink-0">
               Compare plans →
             </Link>
           </MotionPricingStrip>
         </section>
 
-        {/* ── FAQ ── */}
-        <section id="faq" className="border-t border-white/[0.05] py-20">
+        {/* ══ FAQ ═══════════════════════════════════════════════════ */}
+        <section id="faq" className="border-t border-white/[0.05] py-24">
           <div className="mx-auto max-w-3xl px-5 sm:px-8">
             <MotionReveal className="mb-10 text-center">
               <h2 className="text-3xl font-extrabold text-white">
@@ -361,17 +314,21 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Bottom CTA ── */}
-        <section className="border-t border-white/[0.05] py-24 text-center">
-          <div className="mx-auto max-w-2xl px-5">
+        {/* ══ Bottom CTA ════════════════════════════════════════════ */}
+        <section className="relative overflow-hidden border-t border-white/[0.05] py-28 text-center">
+          <MotionParallaxLayer speed={-0.25} className="pointer-events-none absolute inset-0">
+            <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8b86f9]/10 blur-[120px]" />
+          </MotionParallaxLayer>
+
+          <div className="relative mx-auto max-w-2xl px-5">
             <MotionBottomCTA>
-              <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+              <h2 className="text-4xl font-extrabold text-white sm:text-5xl">
                 Ready to fill your calendar?
               </h2>
-              <p className="mx-auto mt-4 max-w-md text-base text-rz-muted">
+              <p className="mx-auto mt-5 max-w-md text-base text-rz-muted">
                 Set up your booking page in 10 minutes. No technical knowledge needed.
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                 <Link href="/signup" className="rz-btn-primary px-8 py-4 text-base">
                   Start for free <span aria-hidden>→</span>
                 </Link>
@@ -384,7 +341,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ── Footer ── */}
+      {/* ══ Footer ══════════════════════════════════════════════════ */}
       <footer className="border-t border-white/[0.05] py-12">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
@@ -395,11 +352,11 @@ export default function Home() {
               <span className="text-sm font-semibold text-white">Reservezy</span>
             </div>
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-rz-subtle">
-              <Link href="/#features" className="transition hover:text-white">Features</Link>
-              <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
+              <Link href="/#features"   className="transition hover:text-white">Features</Link>
+              <Link href="/pricing"     className="transition hover:text-white">Pricing</Link>
               <Link href="/#businesses" className="transition hover:text-white">Industries</Link>
-              <Link href="/#faq" className="transition hover:text-white">FAQ</Link>
-              <Link href="/login" className="transition hover:text-white">Sign in</Link>
+              <Link href="/#faq"        className="transition hover:text-white">FAQ</Link>
+              <Link href="/login"       className="transition hover:text-white">Sign in</Link>
             </nav>
             <p className="text-xs text-rz-subtle">© 2026 Reservezy</p>
           </div>

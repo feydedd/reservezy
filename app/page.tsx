@@ -171,7 +171,17 @@ export default function Home() {
           </MotionHeroParallax>
         </section>
 
-        {/* ══ ★ Centrepiece: pinned booking flow with calendar fill ════ */}
+        {/* ══ Centrepiece: scroll-scrubbed booking story (calendar → live grid → times → pay) ═══ */}
+        <div className="relative border-t border-white/[0.06] bg-gradient-to-b from-transparent via-[#8b86f9]/[0.03] to-transparent py-6 sm:py-10">
+          <div className="mx-auto max-w-2xl px-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rz-subtle">
+              Keep scrolling
+            </p>
+            <p className="mt-2 text-sm text-rz-muted sm:text-base">
+              The preview below is <span className="font-semibold text-white">scroll-driven</span> — your colours, your vibe, one fluid customer journey.
+            </p>
+          </div>
+        </div>
         <PinnedBookingDemo />
 
         {/* ══ Features (parallax + stagger) ═════════════════════════ */}

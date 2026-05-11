@@ -189,4 +189,13 @@ textarea::placeholder {
   .animate-rz-slot-pulse {
     animation: rz-slot-pulse 3.2s ease-in-out infinite;
   }
+
+  @keyframes rz-pin-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
 }

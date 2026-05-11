@@ -102,11 +102,12 @@ export function MotionHeroParallax({ children }: { children: React.ReactNode }) 
     target: ref,
     offset: ["start start", "end start"],
   });
-  const y       = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const y       = useTransform(scrollYProgress, [0, 1], [0, -140]);
+  const scale   = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+  const opacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
 
   return (
-    <motion.div ref={ref} style={{ y, opacity }} className="relative">
+    <motion.div ref={ref} style={{ y, scale, opacity }} className="relative">
       {children}
     </motion.div>
   );

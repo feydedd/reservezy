@@ -4,17 +4,12 @@ import { useEffect } from "react";
 import Lenis from "lenis";
 
 /**
- * Mounts Lenis for smooth inertial scrolling (homepage scroll-story scrub feels best with this).
- *
- * Disabled only when `prefers-reduced-motion: reduce` is set (accessibility).
- * Touch devices use gentler multipliers so the phone-frame section still scrubs smoothly.
+ * Mounts Lenis for smooth inertial scrolling on the homepage (scroll-story scrub).
+ * Runs for all users; touch uses gentler multipliers + syncTouch.
  */
 export function SmoothScrollProvider() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) return;
 
     const coarse = window.matchMedia("(pointer: coarse)").matches;
 

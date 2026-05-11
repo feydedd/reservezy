@@ -5,7 +5,6 @@ import {
   useMotionValueEvent,
   useScroll,
   useTransform,
-  useReducedMotion,
   type MotionValue,
 } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -637,33 +636,9 @@ const SIDE_FEATURES = [
   { title: "Stripe checkout",    body: "Deposits land before the slot is yours." },
 ];
 
-function MobileStack() {
-  const copy = [
-    "Customers pick from your services with prices and durations.",
-    "The month fills as bookings land — counts tick up while you scroll.",
-    "See the day as a grid of open vs taken slots, like your real page.",
-    "Free times glow; taken slots fade. Pick what still works.",
-    "Pay a deposit with Stripe — confirmed in one tap.",
-  ];
-  return (
-    <div className="space-y-5">
-      {SCENES.map((label, i) => (
-        <div key={label} className="rz-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-rz-accent">
-            Step {i + 1} of 5
-          </p>
-          <h3 className="mt-1 text-base font-bold text-white">{label}</h3>
-          <p className="mt-2 text-sm text-rz-muted">{copy[i]}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ═══ Main ═══ */
 export function PinnedBookingDemo() {
   const sectionRef = useRef<HTMLElement>(null);
-  const reduceMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -681,20 +656,6 @@ export function PinnedBookingDemo() {
       "0 40px 100px rgba(0,0,0,0.55), 0 0 56px rgba(139,134,249,0.22)",
     ],
   );
-
-  if (reduceMotion) {
-    return (
-      <section className="border-y border-white/[0.05] py-16">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8">
-          <p className="rz-badge mb-4 inline-flex">See it in action</p>
-          <h2 className="mb-6 text-2xl font-extrabold text-white">
-            How customers book on your page
-          </h2>
-          <MobileStack />
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section

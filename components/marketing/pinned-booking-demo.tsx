@@ -1,7 +1,14 @@
 "use client";
 
-import { motion, useScroll, useTransform, useReducedMotion, MotionValue } from "framer-motion";
-import { useRef } from "react";
+import {
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  useTransform,
+  useReducedMotion,
+  type MotionValue,
+} from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Pinned scroll-scrubbed booking-flow demo — the homepage centrepiece.
@@ -20,12 +27,16 @@ import { useRef } from "react";
 
 const SCENES = ["Pick a service", "Pick a date", "Choose a time", "Confirm & pay"];
 
+/* Scene 2 (calendar) is intentionally wide — ~35% of total pinned-section scroll. */
 const SCENE_RANGES: Array<[number, number]> = [
-  [0.00, 0.22],
-  [0.25, 0.47],
-  [0.50, 0.72],
-  [0.75, 0.97],
+  [0.00, 0.14], // services — snappy intro
+  [0.17, 0.52], // calendar + availability fill (long runway)
+  [0.55, 0.75], // time slots
+  [0.78, 0.97], // confirm
 ];
+
+/** Total scroll height of the pinned block (more vh = slower, more luxurious scrub). */
+const PIN_SECTION_VH = 520;
 
 /* ── Scene-level helpers ─────────────────────────────────────────────── */
 function useSceneOpacity(progress: MotionValue<number>, index: number) {
@@ -121,6 +132,72 @@ const CAL_TODAY  = 8;
 const CAL_PICK   = 17;
 const CAL_BOOKED = new Set([3, 6, 9, 10, 14, 16, 21, 22, 23, 27, 30, 33, 35, 36, 39]);
 
+/** Tiny “live booking” label that pops when a booked cell locks in during the scrub. */
+const BOOKED_POP: Record<number, { initial: string; name: string }> = {
+  3:  { initial: "A", name: "Alex" },
+  6:  { initial: "J", name: "Jordan" },
+  9:  { initial: "S", name: "Sam" },
+  10: { initial: "R", name: "Riley" },
+  14: { initial: "C", name: "Casey" },
+  16: { initial: "M", name: "Morgan" },
+  21: { initial: "T", name: "Taylor" },
+  22: { initial: "K", name: "Kai" },
+  23: { initial: "L", name: "Lee" },
+  27: { initial: "D", name: "Drew" },
+  30: { initial: "N", name: "Noah" },
+  33: { initial: "P", name: "Priya" },
+  35: { initial: "E", name: "Ellis" },
+  36: { initial: "Z", name: "Zane" },
+  39: { initial: "B", name: "Blake" },
+};
+
+function PopBadge({
+  progress,
+  appearAt,
+  initial,
+  name,
+}: {
+  progress: MotionValue<number>;
+  /** Scroll progress moment when the parent cell has finished fading in. */
+  appearAt: number;
+  initial: string;
+  name: string;
+}) {
+  const popStart = appearAt + 0.004;
+  const popEnd   = appearAt + 0.02;
+  const op  = useTransform(progress, [popStart - 0.003, popStart, popEnd], [0, 0, 1]);
+  const sc  = useTransform(progress, [popStart, popEnd], [0.55, 1]);
+  const y   = useTransform(progress, [popStart, popEnd], [6, 0]);
+
+  return (
+    <motion.div
+      style={{ opacity: op, scale: sc, y }}
+      className="pointer-events-none absolute -top-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-md border border-white/15 bg-[#12122a]/95 px-1 py-0.5 text-[8px] font-semibold shadow-lg backdrop-blur-sm"
+    >
+      <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8b86f9] to-[#6d66f0] text-[7px] text-white">
+        {initial}
+      </span>
+      <span className="max-w-[38px] truncate text-white/90">{name}</span>
+    </motion.div>
+  );
+}
+
+function ScrollingBookingCount({ progress }: { progress: MotionValue<number> }) {
+  const [calStart, calEnd] = SCENE_RANGES[1];
+  const mv = useTransform(progress, (v) => {
+    if (v < calStart) return 0;
+    if (v > calEnd) return 184;
+    const t = (v - calStart) / (calEnd - calStart);
+    return Math.min(184, Math.max(0, Math.round(t * 184)));
+  });
+  const [n, setN] = useState(0);
+  useMotionValueEvent(mv, "change", setN);
+  useEffect(() => {
+    setN(mv.get());
+  }, [mv]);
+  return <span className="tabular-nums">{n}</span>;
+}
+
 function CalendarCell({
   index, progress,
 }: {
@@ -129,7 +206,7 @@ function CalendarCell({
 }) {
   const [start, end] = SCENE_RANGES[1];
   const t0 = start + 0.02 + (index / CAL_TOTAL) * (end - start - 0.04);
-  const t1 = t0 + 0.015;
+  const t1 = t0 + 0.012;
 
   const op    = useTransform(progress, [start - 0.02, t0, t1], [0.15, 0.15, 1]);
   const scale = useTransform(progress, [t0 - 0.01, t1], [0.85, 1]);
@@ -155,11 +232,16 @@ function CalendarCell({
     ring = "shadow-[0_0_18px_rgba(139,134,249,0.6)]";
   }
 
+  const meta = BOOKED_POP[index];
+
   return (
     <motion.div
       style={{ opacity: op, scale }}
       className={`relative flex aspect-square items-center justify-center rounded-md text-[11px] ${bg} ${ring} ${txt}`}
     >
+      {meta && isBooked && !isSelected ? (
+        <PopBadge progress={progress} appearAt={t1} initial={meta.initial} name={meta.name} />
+      ) : null}
       {index + 1}
       {isBooked && !isSelected && (
         <span className="absolute bottom-0.5 right-0.5 h-1 w-1 rounded-full bg-[#b0abff]" />
@@ -180,9 +262,15 @@ function CalendarFillScene({ progress }: { progress: MotionValue<number> }) {
       aria-hidden
     >
       <p className="text-xs font-semibold uppercase tracking-widest text-rz-accent">Step 2 of 4</p>
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-white sm:text-xl">Pick a date</h3>
-        <p className="text-xs text-rz-muted">March 2026</p>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h3 className="text-lg font-bold text-white sm:text-xl">Pick a date</h3>
+          <p className="text-xs text-rz-muted">March 2026</p>
+        </div>
+        <p className="text-[11px] text-rz-subtle">
+          <ScrollingBookingCount progress={progress} />{" "}
+          <span className="text-rz-muted">bookings this month · filling live as you scroll</span>
+        </p>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center">
@@ -487,7 +575,7 @@ export function PinnedBookingDemo() {
     <section
       ref={sectionRef}
       className="relative border-y border-white/[0.05]"
-      style={{ height: "400vh" }}
+      style={{ height: `${PIN_SECTION_VH}vh` }}
       aria-label="See the customer booking experience"
     >
       {/* Mobile fallback — visible below sm */}

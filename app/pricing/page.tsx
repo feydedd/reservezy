@@ -162,14 +162,6 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Guarantee strip */}
-        <div className="mt-12 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6 text-center">
-          <p className="text-sm font-medium text-rz-muted">
-            <span className="font-bold text-white">30-day money-back guarantee.</span>{" "}
-            Not happy? Email us and we will refund you, no questions asked.
-          </p>
-        </div>
-
         {/* FAQ */}
         <section className="mt-20">
           <h2 className="mb-8 text-center text-2xl font-extrabold text-white">

@@ -389,6 +389,17 @@ model Branding {
   primaryColour     String?
   secondaryColour   String?
   googleFontFamily  String?
+
+  /// "pill" | "rounded" | "square" — controls button border-radius on booking page
+  buttonStyle       String?
+  /// Hex background colour for the public booking page
+  backgroundColour  String?
+  /// Short tagline shown on the booking page header
+  tagline           String?
+  /// Social links shown in booking page footer
+  socialInstagram   String?
+  socialFacebook    String?
+  socialTwitter     String?
 }
 
 model WorkingHours {

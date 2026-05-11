@@ -44,7 +44,7 @@ export function MarketingNav({ variant = "default" }: MarketingNavProps) {
       <div className="flex items-center gap-2 sm:gap-3">
         <Link
           href="/login"
-          className="hidden rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition-all duration-200 hover:text-white sm:inline"
+          className="rounded-full px-4 py-2 text-sm font-medium text-rz-muted transition-all duration-200 hover:text-white"
         >
           Sign in
         </Link>

@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Check, Lock, Upload } from "lucide-react";
+import { Check, Lock, Upload, AtSign, Globe, Hash } from "lucide-react";
 
 type BrandingData = {
   logoUrl: string | null;
   primaryColour: string | null;
   secondaryColour: string | null;
   googleFontFamily: string | null;
+  buttonStyle: "pill" | "rounded" | "square" | null;
+  backgroundColour: string | null;
+  tagline: string | null;
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialTwitter: string | null;
 };
 
 const FONT_OPTIONS = [
@@ -15,8 +21,15 @@ const FONT_OPTIONS = [
   "Montserrat", "Lato", "Open Sans", "Source Sans 3", "DM Sans",
 ];
 
-const DEFAULT_PRIMARY = "#8b86f9";
-const DEFAULT_SECONDARY = "#c4b5fd";
+const BUTTON_STYLES: { value: "pill" | "rounded" | "square"; label: string; radius: string }[] = [
+  { value: "pill",    label: "Pill",    radius: "9999px" },
+  { value: "rounded", label: "Rounded", radius: "10px"   },
+  { value: "square",  label: "Square",  radius: "4px"    },
+];
+
+const DEFAULT_PRIMARY    = "#8b86f9";
+const DEFAULT_SECONDARY  = "#c4b5fd";
+const DEFAULT_BG         = "#09091a";
 
 export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
   const [branding, setBranding] = useState<BrandingData>({
@@ -24,6 +37,12 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
     primaryColour: DEFAULT_PRIMARY,
     secondaryColour: DEFAULT_SECONDARY,
     googleFontFamily: null,
+    buttonStyle: null,
+    backgroundColour: DEFAULT_BG,
+    tagline: null,
+    socialInstagram: null,
+    socialFacebook: null,
+    socialTwitter: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,14 +53,20 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/dashboard/branding");
+      const res  = await fetch("/api/dashboard/branding");
       const data = await res.json();
       if (res.ok && data.branding) {
         setBranding({
-          logoUrl: data.branding.logoUrl ?? null,
-          primaryColour: data.branding.primaryColour ?? DEFAULT_PRIMARY,
-          secondaryColour: data.branding.secondaryColour ?? DEFAULT_SECONDARY,
+          logoUrl:          data.branding.logoUrl          ?? null,
+          primaryColour:    data.branding.primaryColour    ?? DEFAULT_PRIMARY,
+          secondaryColour:  data.branding.secondaryColour  ?? DEFAULT_SECONDARY,
           googleFontFamily: data.branding.googleFontFamily ?? null,
+          buttonStyle:      data.branding.buttonStyle      ?? null,
+          backgroundColour: data.branding.backgroundColour ?? DEFAULT_BG,
+          tagline:          data.branding.tagline          ?? null,
+          socialInstagram:  data.branding.socialInstagram  ?? null,
+          socialFacebook:   data.branding.socialFacebook   ?? null,
+          socialTwitter:    data.branding.socialTwitter    ?? null,
         });
       }
     } catch { /* silent */ } finally {
@@ -55,10 +80,10 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
     setUploading(true);
     setError("");
     try {
-      const res = await fetch("/api/dashboard/blob-upload", {
-        method: "POST",
+      const res  = await fetch("/api/dashboard/blob-upload", {
+        method:  "POST",
         headers: { "Content-Type": file.type },
-        body: file,
+        body:    file,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
@@ -75,10 +100,10 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
     setError("");
     setSaved(false);
     try {
-      const res = await fetch("/api/dashboard/branding", {
-        method: "PATCH",
+      const res  = await fetch("/api/dashboard/branding", {
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(branding),
+        body:    JSON.stringify(branding),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
@@ -90,6 +115,11 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
       setSaving(false);
     }
   }
+
+  /* ── Live preview helpers ── */
+  const previewPrimary = branding.primaryColour ?? DEFAULT_PRIMARY;
+  const previewBg      = branding.backgroundColour ?? DEFAULT_BG;
+  const previewRadius  = BUTTON_STYLES.find((s) => s.value === (branding.buttonStyle ?? "pill"))?.radius ?? "9999px";
 
   if (loading) {
     return (
@@ -122,13 +152,17 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
         </div>
       )}
 
-      {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       <fieldset disabled={!isPremium} className="space-y-6 disabled:opacity-50">
-        {/* Logo */}
+
+        {/* ── Logo ── */}
         <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
           <h2 className="mb-4 text-base font-semibold text-white">Logo</h2>
-
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06]">
               {branding.logoUrl ? (
@@ -139,7 +173,6 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
               )}
             </div>
             <div className="flex-1 space-y-3">
-              {/* File upload */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-rz-muted">Upload logo</label>
                 <input
@@ -160,7 +193,6 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
                 </button>
                 <p className="mt-1 text-xs text-rz-subtle">PNG, JPG, WEBP. Max ~4MB. Square images work best.</p>
               </div>
-              {/* Or URL */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-rz-muted">Or paste a URL</label>
                 <input
@@ -175,10 +207,30 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
           </div>
         </section>
 
-        {/* Colours */}
+        {/* ── Tagline ── */}
+        <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
+          <h2 className="mb-4 text-base font-semibold text-white">Business tagline</h2>
+          <p className="mb-3 text-sm text-rz-muted">
+            A short line shown beneath your business name on the booking page. Max 120 characters.
+          </p>
+          <input
+            type="text"
+            maxLength={120}
+            className="rz-field"
+            placeholder="e.g. Expert cuts, zero wait time."
+            value={branding.tagline ?? ""}
+            onChange={(e) => setBranding((b) => ({ ...b, tagline: e.target.value || null }))}
+          />
+          <p className="mt-1 text-right text-xs text-rz-subtle">
+            {(branding.tagline ?? "").length} / 120
+          </p>
+        </section>
+
+        {/* ── Colours ── */}
         <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
           <h2 className="mb-4 text-base font-semibold text-white">Colours</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Primary */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-rz-muted">Primary colour</label>
               <div className="flex items-center gap-3">
@@ -197,8 +249,9 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
                 />
               </div>
             </div>
+            {/* Secondary */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-rz-muted">Secondary / accent colour</label>
+              <label className="mb-1.5 block text-sm font-medium text-rz-muted">Accent colour</label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
@@ -215,25 +268,84 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
                 />
               </div>
             </div>
+            {/* Background */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-rz-muted">Page background</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  className="h-10 w-14 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+                  value={branding.backgroundColour ?? DEFAULT_BG}
+                  onChange={(e) => setBranding((b) => ({ ...b, backgroundColour: e.target.value }))}
+                />
+                <input
+                  type="text"
+                  maxLength={7}
+                  className="rz-field font-mono text-sm"
+                  value={branding.backgroundColour ?? DEFAULT_BG}
+                  onChange={(e) => setBranding((b) => ({ ...b, backgroundColour: e.target.value }))}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Preview swatch */}
-          <div className="mt-5 flex items-center gap-3">
-            <div
-              className="h-8 w-24 rounded-full text-center text-xs font-semibold leading-8 text-white shadow-md"
-              style={{ background: branding.primaryColour ?? DEFAULT_PRIMARY }}
+          {/* Swatch preview */}
+          <div
+            className="mt-5 flex items-center gap-4 rounded-xl border border-white/[0.07] p-4"
+            style={{ backgroundColor: previewBg }}
+          >
+            <button
+              type="button"
+              className="px-5 py-2 text-sm font-bold text-white shadow-md transition"
+              style={{ backgroundColor: previewPrimary, borderRadius: previewRadius }}
             >
-              Button
-            </div>
+              Book now
+            </button>
             <div
               className="h-5 w-5 rounded-full border border-white/20"
               style={{ background: branding.secondaryColour ?? DEFAULT_SECONDARY }}
             />
-            <span className="text-xs text-rz-subtle">Preview</span>
+            <span className="text-xs text-white/50">Live preview</span>
           </div>
         </section>
 
-        {/* Font */}
+        {/* ── Button style ── */}
+        <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
+          <h2 className="mb-1 text-base font-semibold text-white">Button style</h2>
+          <p className="mb-4 text-sm text-rz-muted">Controls the corner radius of buttons on your booking page.</p>
+          <div className="flex flex-wrap gap-3">
+            {BUTTON_STYLES.map((s) => {
+              const active = (branding.buttonStyle ?? "pill") === s.value;
+              return (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setBranding((b) => ({ ...b, buttonStyle: s.value }))}
+                  className={`flex flex-col items-center gap-2 rounded-xl border px-5 py-3 text-sm font-medium transition ${
+                    active
+                      ? "border-[#8b86f9] bg-[#8b86f9]/15 text-white"
+                      : "border-white/10 bg-white/[0.03] text-rz-muted hover:border-white/20"
+                  }`}
+                >
+                  <span
+                    className="block h-8 w-20 text-xs font-bold text-white"
+                    style={{
+                      backgroundColor: previewPrimary,
+                      borderRadius: s.radius,
+                      lineHeight: "2rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    Book
+                  </span>
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── Font ── */}
         <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
           <h2 className="mb-4 text-base font-semibold text-white">Font</h2>
           <label className="mb-1.5 block text-sm font-medium text-rz-muted">Google Font family</label>
@@ -244,14 +356,61 @@ export default function BrandingEditor({ isPremium }: { isPremium: boolean }) {
           >
             {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
-          <p className="mt-1 text-xs text-rz-subtle">Applied to your public booking page.</p>
+          <p
+            className="mt-3 text-base text-rz-muted"
+            style={{ fontFamily: branding.googleFontFamily ?? "inherit" }}
+          >
+            The quick brown fox jumps over the lazy dog
+          </p>
+        </section>
+
+        {/* ── Social links ── */}
+        <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
+          <h2 className="mb-1 text-base font-semibold text-white">Social links</h2>
+          <p className="mb-4 text-sm text-rz-muted">
+            Optional links shown in the footer of your booking page.
+          </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <AtSign className="h-4 w-4 shrink-0 text-rz-subtle" />
+              <input
+                type="url"
+                className="rz-field flex-1"
+                placeholder="https://instagram.com/yourbusiness"
+                value={branding.socialInstagram ?? ""}
+                onChange={(e) => setBranding((b) => ({ ...b, socialInstagram: e.target.value || null }))}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Globe className="h-4 w-4 shrink-0 text-rz-subtle" />
+              <input
+                type="url"
+                className="rz-field flex-1"
+                placeholder="https://facebook.com/yourbusiness"
+                value={branding.socialFacebook ?? ""}
+                onChange={(e) => setBranding((b) => ({ ...b, socialFacebook: e.target.value || null }))}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Hash className="h-4 w-4 shrink-0 text-rz-subtle" />
+              <input
+                type="url"
+                className="rz-field flex-1"
+                placeholder="https://twitter.com/yourbusiness"
+                value={branding.socialTwitter ?? ""}
+                onChange={(e) => setBranding((b) => ({ ...b, socialTwitter: e.target.value || null }))}
+              />
+            </div>
+          </div>
         </section>
       </fieldset>
 
       {isPremium && (
         <div className="flex items-center gap-3">
           <button onClick={save} disabled={saving} className="rz-btn-primary gap-2 disabled:opacity-60">
-            {saving ? <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Check className="h-4 w-4" />}
+            {saving
+              ? <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              : <Check className="h-4 w-4" />}
             {saving ? "Saving…" : "Save branding"}
           </button>
           {saved && <span className="text-sm text-[#a5a0ff]">✓ Saved</span>}

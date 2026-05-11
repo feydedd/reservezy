@@ -1,13 +1,24 @@
 import Link from "next/link";
 
 import {
+  MotionAmbientOrbs,
+  MotionBottomCTA,
+  MotionFAQItem,
+  MotionFAQList,
   MotionFeatureCard,
   MotionFeatureGrid,
   MotionHeroBadge,
   MotionHeroCtas,
   MotionHeroSub,
   MotionHeroTitle,
+  MotionIndustriesGrid,
+  MotionIndustryChip,
   MotionMockWindow,
+  MotionPricingStrip,
+  MotionReveal,
+  MotionSectionHeading,
+  MotionTestimonialCard,
+  MotionTestimonialsGrid,
 } from "@/components/marketing/home-motion";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 
@@ -123,7 +134,9 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <main>
-        <section className="relative mx-auto max-w-4xl px-5 pb-16 pt-8 text-center sm:px-8 sm:pt-16">
+        <section className="relative mx-auto max-w-4xl px-5 pb-16 pt-8 text-center sm:px-8 sm:pt-16 overflow-hidden">
+          <MotionAmbientOrbs />
+
           <MotionHeroBadge>
             <div className="rz-badge mb-8 inline-flex">
               <span aria-hidden>✨</span>
@@ -153,7 +166,7 @@ export default function Home() {
           </MotionHeroCtas>
 
           {/* Social proof */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-rz-subtle">
+          <MotionReveal delay={0.32} className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-rz-subtle">
             <span className="flex items-center gap-1.5">
               <span className="text-yellow-400" aria-hidden>★★★★★</span>
               Trusted by growing businesses
@@ -162,7 +175,7 @@ export default function Home() {
             <span>No credit card to start</span>
             <span className="hidden sm:block text-white/20">|</span>
             <span>Cancel any time</span>
-          </div>
+          </MotionReveal>
         </section>
 
         {/* ── Product mock ── */}
@@ -219,7 +232,7 @@ export default function Home() {
         {/* ── Features ── */}
         <section id="features" className="rz-radial-section border-t border-white/[0.05] py-24">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="mx-auto max-w-2xl text-center">
+            <MotionSectionHeading className="mx-auto max-w-2xl text-center">
               <p className="rz-badge mb-4 inline-flex">Everything you need</p>
               <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
                 A complete system for your business
@@ -227,7 +240,7 @@ export default function Home() {
               <p className="mt-4 text-base leading-relaxed text-rz-muted">
                 Every feature you need to take bookings, manage your team, and grow — in one simple platform.
               </p>
-            </div>
+            </MotionSectionHeading>
 
             <MotionFeatureGrid className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((f) => (
@@ -256,51 +269,57 @@ export default function Home() {
         {/* ── Industries ── */}
         <section id="businesses" className="border-t border-white/[0.05] py-20">
           <div className="mx-auto max-w-4xl px-5 text-center sm:px-8">
-            <p className="rz-badge mb-4 inline-flex">Made for your industry</p>
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              Works for any service business
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-rz-muted">
-              Pre-built templates get you set up in minutes with services, durations,
-              and suggested prices — just tweak what you need.
-            </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-2.5">
+            <MotionSectionHeading>
+              <p className="rz-badge mb-4 inline-flex">Made for your industry</p>
+              <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+                Works for any service business
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-base text-rz-muted">
+                Pre-built templates get you set up in minutes with services, durations,
+                and suggested prices — just tweak what you need.
+              </p>
+            </MotionSectionHeading>
+
+            <MotionIndustriesGrid className="mt-10 flex flex-wrap justify-center gap-2.5">
               {industries.map((ind) => (
-                <span
+                <MotionIndustryChip
                   key={ind}
                   className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-medium text-rz-muted transition hover:border-[#8b86f9]/35 hover:bg-[#8b86f9]/10 hover:text-rz-accent"
                 >
                   {ind}
-                </span>
+                </MotionIndustryChip>
               ))}
-            </div>
+            </MotionIndustriesGrid>
           </div>
         </section>
 
         {/* ── Testimonials ── */}
         <section className="border-t border-white/[0.05] py-20">
           <div className="mx-auto max-w-5xl px-5 sm:px-8">
-            <h2 className="mb-12 text-center text-2xl font-bold text-white">
-              Real businesses, real results
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-3">
+            <MotionReveal className="mb-12 text-center">
+              <h2 className="text-2xl font-bold text-white">
+                Real businesses, real results
+              </h2>
+            </MotionReveal>
+
+            <MotionTestimonialsGrid className="grid gap-5 sm:grid-cols-3">
               {testimonials.map((t) => (
-                <blockquote key={t.author} className="rz-card p-6">
+                <MotionTestimonialCard key={t.author} className="rz-card p-6 cursor-default">
                   <p className="text-sm leading-relaxed text-rz-muted">
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <footer className="mt-4 text-xs font-semibold text-rz-accent">
                     — {t.author}
                   </footer>
-                </blockquote>
+                </MotionTestimonialCard>
               ))}
-            </div>
+            </MotionTestimonialsGrid>
           </div>
         </section>
 
         {/* ── Pricing CTA strip ── */}
         <section className="border-t border-white/[0.05] py-16">
-          <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 px-5 sm:flex-row sm:px-8">
+          <MotionPricingStrip className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 px-5 sm:flex-row sm:px-8">
             <div>
               <h2 className="text-2xl font-bold text-white">
                 Simple, transparent pricing
@@ -316,46 +335,51 @@ export default function Home() {
             >
               Compare plans →
             </Link>
-          </div>
+          </MotionPricingStrip>
         </section>
 
         {/* ── FAQ ── */}
         <section id="faq" className="border-t border-white/[0.05] py-20">
           <div className="mx-auto max-w-3xl px-5 sm:px-8">
-            <h2 className="mb-10 text-center text-3xl font-extrabold text-white">
-              Questions answered
-            </h2>
-            <dl className="space-y-4">
+            <MotionReveal className="mb-10 text-center">
+              <h2 className="text-3xl font-extrabold text-white">
+                Questions answered
+              </h2>
+            </MotionReveal>
+
+            <MotionFAQList className="space-y-4">
               {faq.map((item) => (
-                <div
+                <MotionFAQItem
                   key={item.q}
                   className="rz-card px-6 py-5 transition-colors hover:border-[#8b86f9]/25"
                 >
                   <dt className="font-bold text-white">{item.q}</dt>
                   <dd className="mt-2 text-sm leading-relaxed text-rz-muted">{item.a}</dd>
-                </div>
+                </MotionFAQItem>
               ))}
-            </dl>
+            </MotionFAQList>
           </div>
         </section>
 
         {/* ── Bottom CTA ── */}
         <section className="border-t border-white/[0.05] py-24 text-center">
           <div className="mx-auto max-w-2xl px-5">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              Ready to fill your calendar?
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-base text-rz-muted">
-              Set up your booking page in 10 minutes. No technical knowledge needed.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/signup" className="rz-btn-primary px-8 py-4 text-base">
-                Start for free <span aria-hidden>→</span>
-              </Link>
-              <Link href="/login" className="rz-btn-ghost px-8 py-4 text-base">
-                Sign in
-              </Link>
-            </div>
+            <MotionBottomCTA>
+              <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+                Ready to fill your calendar?
+              </h2>
+              <p className="mx-auto mt-4 max-w-md text-base text-rz-muted">
+                Set up your booking page in 10 minutes. No technical knowledge needed.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <Link href="/signup" className="rz-btn-primary px-8 py-4 text-base">
+                  Start for free <span aria-hidden>→</span>
+                </Link>
+                <Link href="/login" className="rz-btn-ghost px-8 py-4 text-base">
+                  Sign in
+                </Link>
+              </div>
+            </MotionBottomCTA>
           </div>
         </section>
       </main>

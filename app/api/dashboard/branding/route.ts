@@ -14,6 +14,12 @@ const updateSchema = z.object({
   primaryColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   secondaryColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   googleFontFamily: z.string().max(80).nullable().optional(),
+  buttonStyle: z.enum(["pill", "rounded", "square"]).nullable().optional(),
+  backgroundColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  tagline: z.string().max(120).nullable().optional(),
+  socialInstagram: z.string().url().nullable().optional(),
+  socialFacebook: z.string().url().nullable().optional(),
+  socialTwitter: z.string().url().nullable().optional(),
 });
 
 export async function GET(): Promise<Response> {

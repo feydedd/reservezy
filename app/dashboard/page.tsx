@@ -5,6 +5,7 @@ import { loadDashboardStats } from "@/lib/server/dashboard-stats";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { BookingLinkWidget } from "@/components/dashboard/booking-link-widget";
 import { SetupChecklist } from "@/components/dashboard/setup-checklist";
+import { StatsWithModal } from "@/components/dashboard/stats-with-modal";
 
 function formatMoney(pence: number): string {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
@@ -16,6 +17,14 @@ export default async function DashboardHomePage() {
   if (!ctx) return null;
 
   const stats = await loadDashboardStats(ctx);
+
+  const statConfig = [
+    { key: "today"    as const, label: "Bookings today", value: String(stats.bookingsToday),          clickable: true },
+    { key: "week"     as const, label: "This week",      value: String(stats.bookingsThisWeek),        clickable: true },
+    { key: "month"    as const, label: "This month",     value: String(stats.bookingsThisMonth),       clickable: true },
+    { key: "upcoming" as const, label: "Upcoming",       value: String(stats.upcomingBookings),        clickable: true },
+    { key: "revenue"  as const, label: "Revenue (month)",value: formatMoney(stats.revenueThisMonthPence), clickable: false },
+  ];
 
   return (
     <div className="space-y-8">
@@ -30,21 +39,8 @@ export default async function DashboardHomePage() {
 
       {ctx.role === "BUSINESS_OWNER" && <SetupChecklist />}
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[
-          ["Bookings today",   String(stats.bookingsToday)],
-          ["This week",        String(stats.bookingsThisWeek)],
-          ["This month",       String(stats.bookingsThisMonth)],
-          ["Upcoming",         String(stats.upcomingBookings)],
-          ["Revenue (month)",  formatMoney(stats.revenueThisMonthPence)],
-        ].map(([label, value]) => (
-          <div key={label} className="rz-card-hover p-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-rz-subtle">{label}</p>
-            <p className="mt-2 text-3xl font-extrabold text-white">{value}</p>
-          </div>
-        ))}
-      </div>
+      {/* Stat tiles — today / week / month / upcoming are clickable */}
+      <StatsWithModal stats={statConfig} />
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">

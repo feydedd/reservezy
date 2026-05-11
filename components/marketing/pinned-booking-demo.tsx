@@ -7,7 +7,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 /**
  * Pinned scroll-scrubbed booking-flow — homepage centrepiece.
@@ -37,7 +37,10 @@ const SCENE_RANGES: Array<[number, number]> = [
   [0.74, 0.96],
 ];
 
-const PIN_SECTION_VH = 620;
+/** Exported for homepage loading skeleton (must match layout height). */
+export const PINNED_BOOKING_SECTION_VH = 560;
+
+const PIN_SECTION_VH = PINNED_BOOKING_SECTION_VH;
 
 function useSceneOpacity(progress: MotionValue<number>, index: number) {
   const [start, end] = SCENE_RANGES[index];
@@ -50,32 +53,30 @@ function useSceneScale(progress: MotionValue<number>, index: number) {
   return useTransform(progress, [start - 0.035, mid, end + 0.035], [0.94, 1, 0.94]);
 }
 
-/* ═══ Scroll-linked backdrop (inside sticky) ═══ */
-function PinnedAtmosphere({ progress }: { progress: MotionValue<number> }) {
-  const y1 = useTransform(progress, [0, 1], [0, -180]);
-  const y2 = useTransform(progress, [0, 1], [0, 120]);
-  const rot = useTransform(progress, [0, 1], [0, 18]);
-  const meshOp = useTransform(progress, [0.1, 0.45, 0.85], [0.35, 0.75, 0.4]);
-
+/* ═══ Ambient backdrop (CSS-driven — zero scroll listeners, cheaper than scroll-linked blur) ═══ */
+function PinnedAtmosphere() {
   return (
     <>
       <motion.div
-        style={{ y: y1, opacity: meshOp }}
-        className="pointer-events-none absolute -left-1/4 top-0 h-[140%] w-[70%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(139,134,249,0.28)_0%,transparent_65%)] blur-3xl"
+        animate={{ y: [0, -24, 0], opacity: [0.32, 0.48, 0.32] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-1/4 top-0 h-[140%] w-[70%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(139,134,249,0.26)_0%,transparent_65%)] blur-2xl will-change-transform"
         aria-hidden
       />
       <motion.div
-        style={{ y: y2 }}
-        className="pointer-events-none absolute -right-1/4 bottom-0 h-[120%] w-[60%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(109,102,240,0.22)_0%,transparent_60%)] blur-3xl"
+        animate={{ y: [0, 20, 0] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -right-1/4 bottom-0 h-[120%] w-[60%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(109,102,240,0.2)_0%,transparent_60%)] blur-2xl will-change-transform"
         aria-hidden
       />
       <motion.div
-        style={{ rotate: rot, opacity: 0.12 }}
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[200vmin] w-[200vmin] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_180deg_at_50%_50%,#8b86f9,transparent_40%,#38bdf8,transparent_70%,#6d66f0)] blur-3xl"
+        animate={{ rotate: [0, 360] }}
+        transition={{ duration: 140, repeat: Infinity, ease: "linear" }}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[180vmin] w-[180vmin] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_180deg_at_50%_50%,#8b86f9,transparent_40%,#38bdf8,transparent_70%,#6d66f0)] opacity-[0.1] blur-2xl will-change-transform"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_45%,transparent_0%,rgba(9,9,26,0.85)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_45%,transparent_0%,rgba(9,9,26,0.88)_100%)]"
         aria-hidden
       />
     </>
@@ -91,7 +92,7 @@ const SERVICES: Service[] = [
   { name: "Beard trim",     price: "£18", dur: "20 min", emoji: "🧔" },
 ];
 
-function ServiceCard({
+const ServiceCard = memo(function ServiceCard({
   service, index, progress, selected,
 }: {
   service: Service;
@@ -142,7 +143,7 @@ function ServiceCard({
       ) : null}
     </motion.div>
   );
-}
+});
 
 function ServiceCardsScene({ progress }: { progress: MotionValue<number> }) {
   const opacity = useSceneOpacity(progress, 0);
@@ -189,7 +190,7 @@ const BOOKED_POP: Record<number, { initial: string; name: string }> = {
   39: { initial: "B", name: "Blake" },
 };
 
-function PopBadge({
+const PopBadge = memo(function PopBadge({
   progress, appearAt, initial, name,
 }: {
   progress: MotionValue<number>;
@@ -214,7 +215,7 @@ function PopBadge({
       <span className="max-w-[40px] truncate text-white/95">{name}</span>
     </motion.div>
   );
-}
+});
 
 function ScrollingBookingCount({ progress }: { progress: MotionValue<number> }) {
   const [calStart, calEnd] = SCENE_RANGES[1];
@@ -225,14 +226,16 @@ function ScrollingBookingCount({ progress }: { progress: MotionValue<number> }) 
     return Math.min(184, Math.max(0, Math.round(t * 184)));
   });
   const [n, setN] = useState(0);
-  useMotionValueEvent(mv, "change", setN);
+  useMotionValueEvent(mv, "change", (v) => {
+    setN((prev) => (prev === v ? prev : v));
+  });
   useEffect(() => {
     setN(mv.get());
   }, [mv]);
   return <span className="tabular-nums font-semibold text-[#c4b5fd]">{n}</span>;
 }
 
-function CalendarCell({ index, progress }: { index: number; progress: MotionValue<number> }) {
+const CalendarCell = memo(function CalendarCell({ index, progress }: { index: number; progress: MotionValue<number> }) {
   const [start, end] = SCENE_RANGES[1];
   const t0 = start + 0.015 + (index / CAL_TOTAL) * (end - start - 0.05);
   const t1 = t0 + 0.011;
@@ -283,7 +286,7 @@ function CalendarCell({ index, progress }: { index: number; progress: MotionValu
       ) : null}
     </motion.div>
   );
-}
+});
 
 function CalendarFillScene({ progress }: { progress: MotionValue<number> }) {
   const opacity = useSceneOpacity(progress, 1);
@@ -347,7 +350,7 @@ const SLOT_GRID = 24;
 /** Indices that become “booked” as the user scrolls — wave across the day. */
 const SLOT_BOOKED = new Set([1, 2, 4, 5, 7, 9, 11, 12, 14, 15, 17, 19, 20, 22]);
 
-function AvailabilitySlot({ index, progress }: { index: number; progress: MotionValue<number> }) {
+const AvailabilitySlot = memo(function AvailabilitySlot({ index, progress }: { index: number; progress: MotionValue<number> }) {
   const [start, end] = SCENE_RANGES[2];
   const t0 = start + 0.02 + (index / SLOT_GRID) * (end - start - 0.06);
   const t1 = t0 + 0.012;
@@ -379,7 +382,7 @@ function AvailabilitySlot({ index, progress }: { index: number; progress: Motion
       )}
     </motion.div>
   );
-}
+});
 
 function AvailabilityGridScene({ progress }: { progress: MotionValue<number> }) {
   const opacity = useSceneOpacity(progress, 2);
@@ -394,7 +397,9 @@ function AvailabilityGridScene({ progress }: { progress: MotionValue<number> }) 
     return Math.min(SLOT_BOOKED.size, Math.max(0, Math.round(u * SLOT_BOOKED.size)));
   });
   const [filled, setFilled] = useState(0);
-  useMotionValueEvent(fillCount, "change", setFilled);
+  useMotionValueEvent(fillCount, "change", (v) => {
+    setFilled((prev) => (prev === v ? prev : v));
+  });
   useEffect(() => {
     setFilled(fillCount.get());
   }, [fillCount]);
@@ -439,7 +444,7 @@ const SLOTS = [
 const SLOT_TAKEN = new Set([0, 3, 5, 8, 11]);
 const SLOT_PICK  = 6;
 
-function TimeSlotPill({
+const TimeSlotPill = memo(function TimeSlotPill({
   index, label, progress,
 }: {
   index: number;
@@ -471,7 +476,7 @@ function TimeSlotPill({
       {label}
     </motion.div>
   );
-}
+});
 
 function TimeSlotsScene({ progress }: { progress: MotionValue<number> }) {
   const opacity = useSceneOpacity(progress, 3);
@@ -666,7 +671,7 @@ export function PinnedBookingDemo() {
     >
       {/* Same scroll-scrubbed device frame on all viewports — side rails only from lg up */}
       <div className="sticky top-0 flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden py-6 sm:py-0">
-        <PinnedAtmosphere progress={scrollYProgress} />
+        <PinnedAtmosphere />
 
         <div className="relative z-10 mb-4 w-full max-w-md px-4 text-center lg:hidden">
           <p className="rz-badge mb-2 inline-flex">Scroll the story</p>
@@ -752,3 +757,5 @@ export function PinnedBookingDemo() {
     </section>
   );
 }
+
+export default PinnedBookingDemo;

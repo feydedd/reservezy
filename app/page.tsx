@@ -1,4 +1,5 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 import {
   MotionAmbientOrbs,
@@ -22,8 +23,26 @@ import {
   MotionTestimonialsGrid,
 } from "@/components/marketing/home-motion";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
-import { PinnedBookingDemo } from "@/components/marketing/pinned-booking-demo";
 import { SmoothScrollProvider } from "@/components/marketing/smooth-scroll-provider";
+
+/** Keep in sync with `PINNED_BOOKING_SECTION_VH` in pinned-booking-demo (loading skeleton height). */
+const PINNED_BOOKING_DEMO_VH = 560;
+
+const PinnedBookingDemo = dynamic(
+  () => import("@/components/marketing/pinned-booking-demo"),
+  {
+    ssr: false,
+    loading: () => (
+      <section
+        aria-hidden
+        className="relative flex justify-center bg-[#050510] py-16"
+        style={{ minHeight: `${PINNED_BOOKING_DEMO_VH}vh` }}
+      >
+        <div className="sticky top-24 h-[min(72vh,640px)] w-full max-w-[min(100%,300px)] animate-pulse rounded-[2rem] border border-white/10 bg-white/[0.04] sm:max-w-[340px] lg:max-w-[400px]" />
+      </section>
+    ),
+  },
+);
 
 /* ── Features ── */
 const features = [

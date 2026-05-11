@@ -703,20 +703,25 @@ export function PinnedBookingDemo() {
       style={{ height: `${PIN_SECTION_VH}vh` }}
       aria-label="See the customer booking experience"
     >
-      <div className="px-5 py-16 sm:hidden">
-        <div className="mx-auto max-w-md">
-          <p className="rz-badge mb-4 inline-flex">See it in action</p>
-          <h2 className="mb-6 text-2xl font-extrabold text-white">
-            How customers book on your page
-          </h2>
-          <MobileStack />
-        </div>
-      </div>
-
-      <div className="sticky top-0 hidden h-screen items-center justify-center overflow-hidden sm:flex">
+      {/* Same scroll-scrubbed device frame on all viewports — side rails only from lg up */}
+      <div className="sticky top-0 flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden py-6 sm:py-0">
         <PinnedAtmosphere progress={scrollYProgress} />
 
-        <div className="relative z-10 grid w-full max-w-6xl gap-8 px-6 lg:grid-cols-[1fr_minmax(0,400px)_1fr] lg:items-center lg:gap-10 xl:max-w-7xl">
+        <div className="relative z-10 mb-4 w-full max-w-md px-4 text-center lg:hidden">
+          <p className="rz-badge mb-2 inline-flex">Scroll the story</p>
+          <h2 className="text-xl font-extrabold leading-snug text-white sm:text-2xl">
+            Watch the{" "}
+            <span className="bg-gradient-to-r from-[#b0abff] via-[#8b86f9] to-[#7c6df8] bg-clip-text text-transparent">
+              booking flow
+            </span>{" "}
+            in the frame
+          </h2>
+          <p className="mt-2 text-xs text-rz-muted sm:text-sm">
+            Keep scrolling — the phone scrubs through service → calendar → live slots → time → pay.
+          </p>
+        </div>
+
+        <div className="relative z-10 grid w-full max-w-6xl flex-1 items-center gap-6 px-4 sm:gap-8 sm:px-6 lg:grid-cols-[1fr_minmax(0,400px)_1fr] lg:gap-10 xl:max-w-7xl">
           <div className="hidden flex-col gap-3 self-center lg:flex">
             <p className="rz-badge inline-flex w-fit">Scroll the story</p>
             <h2 className="text-3xl font-extrabold leading-[1.15] text-white xl:text-4xl">
@@ -735,7 +740,7 @@ export function PinnedBookingDemo() {
 
           <motion.div
             style={{ y: frameY, perspective: 1400 }}
-            className="relative mx-auto w-full max-w-[380px] lg:max-w-[400px]"
+            className="relative mx-auto w-full max-w-[min(100%,300px)] sm:max-w-[340px] lg:max-w-[400px]"
           >
             <motion.div
               style={{ rotateX: frameRotX, boxShadow: shellShadow, transformStyle: "preserve-3d" }}

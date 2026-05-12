@@ -5,21 +5,20 @@ import Lenis from "lenis";
 
 /**
  * Mounts Lenis for smooth inertial scrolling on the homepage (scroll-story scrub).
- * Runs for all users; touch uses gentler multipliers + syncTouch.
+ * Skipped on touch-primary viewports (coarse pointer): Lenis syncTouch + extra RAF
+ * caused noticeable lag on phones; native scroll stays smooth enough there.
  */
 export function SmoothScrollProvider() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const coarse = window.matchMedia("(pointer: coarse)").matches;
+    if (coarse) return;
 
     const lenis = new Lenis({
-      duration:         coarse ? 1.35 : 1.15,
-      easing:           (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel:      true,
-      wheelMultiplier:  coarse ? 0.85 : 1,
-      touchMultiplier:  coarse ? 1.15 : 1.35,
-      syncTouch:        coarse,
+      duration:    1.15,
+      easing:      (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
     });
 
     let rafId = 0;

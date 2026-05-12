@@ -140,7 +140,7 @@ export function DashboardSidebar({ ctx }: DashboardSidebarProps) {
           <p className="mt-1 text-xs leading-relaxed text-rz-subtle">
             {!standard
               ? "Unlock email & SMS reminders, intake forms, and accounting export."
-              : "Unlock calendar sync, multi-location, review prompts, and the template library."}
+              : "Unlock multi-location, review prompts, the template library, and advanced analytics."}
           </p>
           <Link
             href="/dashboard/subscription"

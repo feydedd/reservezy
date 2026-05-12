@@ -11,7 +11,14 @@ import { prisma } from "@/lib/prisma";
 import { getStripeOrNull } from "@/lib/stripe/client";
 import { getStripePriceIdForTier } from "@/lib/stripe/subscription-price";
 
-const schema = z.object({ tier: z.enum(["STANDARD", "PREMIUM"]) });
+const schema = z.object({
+  tier: z.enum(["STANDARD", "PREMIUM"]),
+  ivrCountryCode: z
+    .string()
+    .length(2)
+    .transform((s) => s.toUpperCase())
+    .optional(),
+});
 
 export async function POST(req: Request): Promise<Response> {
   const stripe = getStripeOrNull();
@@ -29,6 +36,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) return jsonError("Invalid tier.", 422);
 
   const tier: SubscriptionTier = parsed.data.tier;
+  const ivrCountryCode = parsed.data.ivrCountryCode ?? "GB";
 
   const business = await prisma.business.findUnique({
     where: { ownerId: session.user.ownerId },
@@ -70,9 +78,9 @@ export async function POST(req: Request): Promise<Response> {
     success_url: `${base}/dashboard/subscription?upgrade=success`,
     cancel_url: `${base}/dashboard/subscription?upgrade=cancel`,
     subscription_data: {
-      metadata: { businessId: business.id, tier },
+      metadata: { businessId: business.id, tier, ivrCountryCode },
     },
-    metadata: { intent: "reservezy-upgrade", businessId: business.id, tier },
+    metadata: { intent: "reservezy-upgrade", businessId: business.id, tier, ivrCountryCode },
   });
 
   return jsonOk({ url: checkoutSession.url ?? null });

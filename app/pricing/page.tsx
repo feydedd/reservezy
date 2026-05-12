@@ -14,7 +14,7 @@ const tiers = [
     period: "/month",
     tagline: "Perfect to get started",
     description:
-      "Online bookings with an in-app checklist, referrals, internal notes, and promo codes.",
+      "Online bookings with calendar sync, managed phone IVR, an in-app checklist, referrals, internal notes, and promo codes.",
     featured: false,
     cta: "Start with Basic",
     bullets: [
@@ -22,6 +22,8 @@ const tiers = [
       "Services, durations, and pricing",
       "Working hours & holiday blocks",
       "Owner dashboard with calendar & bookings list",
+      "Google Calendar & Outlook sync on every plan",
+      "Managed phone IVR — dedicated number after you subscribe",
       "Buffer time between appointments",
       "In-app checklist to finish setup with confidence",
       "Referral tools to reward clients who bring friends",
@@ -54,11 +56,10 @@ const tiers = [
     period: "/month",
     tagline: "For ambitious businesses",
     description:
-      "Everything in Standard, plus calendar sync, full branding, multi-location, and growth tools.",
+      "Everything in Standard, plus full branding, multi-location, and growth tools.",
     featured: false,
     cta: "Start free trial",
     bullets: [
-      "Google Calendar & Outlook sync",
       "Full branding: logo, colours, font",
       "Customers can cancel & reschedule via link",
       "Advanced analytics and revenue charts",

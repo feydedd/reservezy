@@ -4,7 +4,6 @@ import { jsonError, jsonOk } from "@/lib/http/api-response";
 import { getReservezySession } from "@/lib/auth/session";
 import { loadDashboardBusinessContext } from "@/lib/server/session-business";
 import { requireBusinessOwner } from "@/lib/server/dashboard-guards";
-import { hasPremiumFeatures } from "@/lib/subscription/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +19,6 @@ export async function GET(): Promise<Response> {
   const session = await getReservezySession();
   const ctx = await loadDashboardBusinessContext(session);
   try { requireBusinessOwner(ctx); } catch { return jsonError("Forbidden.", 403); }
-
-  if (!hasPremiumFeatures(ctx.subscriptionTier)) {
-    return jsonError("Calendar sync requires a Premium plan.", 403);
-  }
 
   const oauth2 = getOAuth2Client();
   const url = oauth2.generateAuthUrl({

@@ -1,19 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
 
 type GoogleIntegration = { accountEmail: string | null; calendarId: string | null } | null;
 type OutlookIntegration = { accountEmail: string | null } | null;
 
 export default function IntegrationsPanel({
-  isPremium,
   googleIntegration,
   outlookIntegration,
   flashSuccess,
   flashError,
 }: {
-  isPremium: boolean;
   googleIntegration: GoogleIntegration;
   outlookIntegration: OutlookIntegration;
   flashSuccess?: string;
@@ -33,7 +31,7 @@ export default function IntegrationsPanel({
       const data = await res.json();
       if (data.url) window.location.href = data.url;
     } catch {
-      alert("Failed to start Google sign-in. Check your Premium plan status.");
+      alert("Failed to start Google sign-in. Please try again.");
     } finally {
       setConnecting(false);
     }
@@ -105,21 +103,6 @@ export default function IntegrationsPanel({
         </div>
       )}
 
-      {!isPremium && (
-        <div className="flex items-start gap-3 rounded-xl border border-[#8b86f9]/30 bg-[#8b86f9]/10 p-4">
-          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#c4b5fd]" />
-          <div>
-            <p className="font-medium text-[#c4b5fd]">Premium feature</p>
-            <p className="mt-0.5 text-sm text-rz-muted">
-              Calendar integrations are available on the Premium plan. Upgrade to automatically sync bookings.
-            </p>
-            <a href="/dashboard/subscription" className="mt-2 inline-block text-sm font-semibold text-[#a5a0ff] hover:underline">
-              Upgrade to Premium →
-            </a>
-          </div>
-        </div>
-      )}
-
       {/* Google Calendar */}
       <section className="rounded-2xl border border-white/10 bg-[#11111f]/80 p-6">
         <div className="flex items-start justify-between gap-4">
@@ -150,7 +133,7 @@ export default function IntegrationsPanel({
             {googleState ? (
               <button
                 onClick={disconnectGoogle}
-                disabled={disconnecting || !isPremium}
+                disabled={disconnecting}
                 className="rz-btn-ghost text-sm disabled:opacity-50"
               >
                 {disconnecting ? "Disconnecting…" : "Disconnect"}
@@ -158,7 +141,7 @@ export default function IntegrationsPanel({
             ) : (
               <button
                 onClick={connectGoogle}
-                disabled={connecting || !isPremium}
+                disabled={connecting}
                 className="rz-btn-primary gap-2 text-sm disabled:opacity-50"
               >
                 {connecting ? (
@@ -195,7 +178,7 @@ export default function IntegrationsPanel({
             {outlookState ? (
               <button
                 onClick={disconnectOutlook}
-                disabled={outlookDisconnecting || !isPremium}
+                disabled={outlookDisconnecting}
                 className="rz-btn-ghost text-sm disabled:opacity-50"
               >
                 {outlookDisconnecting ? "Disconnecting…" : "Disconnect"}
@@ -203,7 +186,7 @@ export default function IntegrationsPanel({
             ) : (
               <button
                 onClick={connectOutlook}
-                disabled={outlookConnecting || !isPremium}
+                disabled={outlookConnecting}
                 className="rz-btn-primary gap-2 text-sm disabled:opacity-50"
               >
                 {outlookConnecting ? (

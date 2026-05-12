@@ -79,7 +79,13 @@ const features = [
   {
     icon: "📅",
     title: "Calendar sync",
-    body: "Connects to Google Calendar and Outlook so your appointments appear alongside personal events.",
+    body: "Connects to Google Calendar and Outlook on every plan so your appointments appear alongside personal events.",
+    wide: false,
+  },
+  {
+    icon: "📞",
+    title: "Phone IVR",
+    body: "After you subscribe, get a dedicated business number with an automated menu — press 1 for a booking link by text, press 2 to reach your team.",
     wide: false,
   },
 ];
@@ -108,7 +114,7 @@ const faq = [
   },
   {
     q: "Will it work alongside my existing calendar?",
-    a: "Premium connects to Google Calendar and Microsoft Outlook so every booking lands there automatically.",
+    a: "Every plan connects to Google Calendar and Microsoft Outlook so each booking appears in your calendar automatically.",
   },
 ];
 

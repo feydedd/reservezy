@@ -7,10 +7,8 @@ import {
   Copy,
   CheckCircle,
   Sparkles,
-  Star,
   Trash2,
   Loader2,
-  MessageSquare,
 } from "lucide-react";
 
 type IvrData = {
@@ -116,9 +114,6 @@ export default function IvrSettingsForm() {
   const [provisionError, setProvisionError] = useState("");
   const [countryCode, setCountryCode] = useState("GB");
 
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
-
   const justPaid = searchParams?.get("ivr_success") === "1";
 
   const load = useCallback(async () => {
@@ -132,10 +127,7 @@ export default function IvrSettingsForm() {
 
   useEffect(() => { load(); }, [load]);
 
-  const isPremium = data?.subscriptionTier === "PREMIUM";
-  const hasAddon  = !!data?.ivrAddOnSubscriptionId;
-  const canManage = isPremium || hasAddon;
-  const isActive  = !!data?.ivrPhoneNumber;
+  const isActive = !!data?.ivrPhoneNumber;
 
   async function provision() {
     setProvisioning(true);
@@ -165,23 +157,6 @@ export default function IvrSettingsForm() {
       await load();
     }
     setReleasing(false);
-  }
-
-  async function startCheckout() {
-    setCheckingOut(true);
-    setCheckoutError("");
-    const res  = await fetch("/api/dashboard/ivr/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ countryCode }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setCheckoutError(json.error ?? "Failed to start checkout.");
-      setCheckingOut(false);
-    } else if (json.data?.url ?? json.url) {
-      window.location.href = json.data?.url ?? json.url;
-    }
   }
 
   async function save() {
@@ -242,8 +217,9 @@ export default function IvrSettingsForm() {
         <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3">
           <CheckCircle size={18} className="shrink-0 text-green-400" />
           <p className="text-sm text-green-300">
-            Payment confirmed! Your phone number is being provisioned — it will
-            appear below within a few seconds.
+            Subscription confirmed! Your managed phone number is being provisioned
+            — it will appear below within a few seconds. Refresh if it does not show
+            up.
           </p>
         </div>
       )}
@@ -255,14 +231,9 @@ export default function IvrSettingsForm() {
             <Sparkles size={16} className="text-[#a5a0ff]" />
             <h2 className="font-semibold text-white">Managed by Reservezy</h2>
             <span className="rounded-full bg-[#8b86f9]/15 px-2 py-0.5 text-[11px] font-semibold text-[#a5a0ff]">
-              Recommended
+              Included in every plan
             </span>
           </div>
-          {isPremium && (
-            <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-300">
-              <Star size={11} /> Included in Premium
-            </span>
-          )}
         </div>
 
         <p className="text-sm text-rz-muted">
@@ -297,7 +268,7 @@ export default function IvrSettingsForm() {
               cards. When customers call, they&apos;ll hear your booking menu.
             </p>
           </div>
-        ) : canManage ? (
+        ) : (
           <div className="space-y-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-rz-muted">
@@ -315,6 +286,9 @@ export default function IvrSettingsForm() {
                 ))}
               </select>
             </div>
+            <p className="text-xs text-rz-muted">
+              If a number was not created after you subscribed, choose a country and tap Get my number.
+            </p>
             <button
               type="button"
               onClick={provision}
@@ -324,69 +298,11 @@ export default function IvrSettingsForm() {
               {provisioning ? (
                 <><Loader2 size={15} className="animate-spin" /> Provisioning…</>
               ) : (
-                <><Phone size={15} /> Get my number {isPremium ? "(free)" : ""}</>
+                <><Phone size={15} /> Get my number</>
               )}
             </button>
             {provisionError && (
               <p className="text-sm text-red-400">{provisionError}</p>
-            )}
-          </div>
-        ) : (
-          /* Paywall for Basic / Standard */
-          <div className="rounded-xl border border-[#8b86f9]/20 bg-[#8b86f9]/[0.06] p-5 space-y-4">
-            <div className="flex items-start gap-3">
-              <MessageSquare size={18} className="mt-0.5 shrink-0 text-[#a5a0ff]" />
-              <div>
-                <p className="font-medium text-white">
-                  Add managed IVR for{" "}
-                  <span className="text-[#a5a0ff]">£2 / month</span>
-                </p>
-                <p className="mt-1 text-sm text-rz-muted">
-                  We handle everything — number provisioning, call routing, and
-                  SMS delivery. Cancel any time.
-                  {" "}Alternatively,{" "}
-                  <a
-                    href="/dashboard/subscription"
-                    className="text-[#a5a0ff] hover:underline"
-                  >
-                    upgrade to Premium
-                  </a>{" "}
-                  and get it included.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-rz-muted">
-                Country for phone number
-              </label>
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="rz-field w-full"
-              >
-                {COUNTRY_OPTIONS.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="button"
-              onClick={startCheckout}
-              disabled={checkingOut}
-              className="rz-btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
-            >
-              {checkingOut ? (
-                <><Loader2 size={15} className="animate-spin" /> Redirecting to checkout…</>
-              ) : (
-                <>Add IVR — £2/month</>
-              )}
-            </button>
-            {checkoutError && (
-              <p className="text-sm text-red-400">{checkoutError}</p>
             )}
           </div>
         )}

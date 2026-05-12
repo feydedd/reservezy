@@ -28,12 +28,12 @@ function twilioClient() {
   return twilio(sid, token);
 }
 
-/** Premium tier gets managed IVR for free; Basic/Standard need the add-on subscription. */
+/** Managed IVR is included on every plan (legacy add-on subscribers also qualify). */
 function canUseManagedIvr(
   tier: string,
   ivrAddOnSubscriptionId: string | null,
 ): boolean {
-  if (tier === "PREMIUM") return true;
+  if (tier === "BASIC" || tier === "STANDARD" || tier === "PREMIUM") return true;
   return !!ivrAddOnSubscriptionId;
 }
 
@@ -59,12 +59,24 @@ export async function POST(req: Request): Promise<Response> {
       ivrPhoneSid: true,
       ivrAddOnSubscriptionId: true,
       subscriptionTier: true,
+      subscriptionStatus: true,
     },
   });
   if (!business) return jsonError("Business not found.", 404);
 
+  const subscriptionLive =
+    business.subscriptionStatus === "ACTIVE" ||
+    business.subscriptionStatus === "TRIALING";
+
+  if (!subscriptionLive && !business.ivrAddOnSubscriptionId) {
+    return jsonError(
+      "Activate a subscription first — your managed number is included and is created automatically after checkout, or use Get my number once billing is active.",
+      403,
+    );
+  }
+
   if (!canUseManagedIvr(business.subscriptionTier, business.ivrAddOnSubscriptionId)) {
-    return jsonError("Managed IVR requires Premium or the IVR add-on subscription.", 403);
+    return jsonError("Managed IVR is not available for this workspace.", 403);
   }
 
   if (business.ivrPhoneSid) {

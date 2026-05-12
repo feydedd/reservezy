@@ -11,6 +11,8 @@ const tierInfo = {
     color: "text-slate-300",
     features: [
       "Public booking page & calendar dashboard",
+      "Google Calendar & Outlook sync",
+      "Managed phone IVR with a dedicated business number",
       "In-app checklist, referrals & promo codes",
       "Internal notes (team-only)",
       "Buffer time & holidays",
@@ -33,7 +35,6 @@ const tierInfo = {
     color: "text-yellow-300",
     features: [
       "Everything in Standard",
-      "Google Calendar & Outlook sync",
       "Custom branding (logo, colours, fonts)",
       "Full analytics & cancel/reschedule links",
       "Multi-location, review prompts & template library",

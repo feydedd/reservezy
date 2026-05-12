@@ -57,6 +57,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const tierChoice: SubscriptionTier = parsedTier.data.tier;
+  const ivrCountryCode = parsedTier.data.ivrCountryCode ?? "GB";
 
   let priceId: string;
   try {
@@ -89,6 +90,7 @@ export async function POST(request: Request): Promise<Response> {
       metadata: {
         businessId: business.id,
         tier: tierChoice,
+        ivrCountryCode,
       },
     },
     metadata: {
@@ -96,6 +98,7 @@ export async function POST(request: Request): Promise<Response> {
       businessId: business.id,
       tier: tierChoice,
       stripePriceId: priceId,
+      ivrCountryCode,
     },
   });
 

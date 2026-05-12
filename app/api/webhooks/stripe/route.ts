@@ -19,6 +19,11 @@ function parsePricingPlanTier(raw?: string | null): PricingPlanTier | null {
   return null;
 }
 
+function normaliseIvrCountryCode(raw?: string | null): string {
+  const c = (raw ?? "GB").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(c) ? c : "GB";
+}
+
 /** Provisions a Twilio number for managed IVR after payment. */
 async function provisionIvrNumber(businessId: string, countryCode: string): Promise<void> {
   const sid   = process.env.TWILIO_ACCOUNT_SID;
@@ -104,7 +109,10 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
-  if (session.payment_status !== "paid") {
+  const checkoutPaymentOk =
+    session.payment_status === "paid" ||
+    session.payment_status === "no_payment_required";
+  if (!checkoutPaymentOk) {
     return;
   }
 
@@ -215,6 +223,13 @@ async function handleCheckoutSessionCompleted(
       },
     });
   });
+
+  const ivrCountry = normaliseIvrCountryCode(
+    session.metadata?.ivrCountryCode ??
+      stripeBilling.metadata?.ivrCountryCode ??
+      null,
+  );
+  await provisionIvrNumber(businessId, ivrCountry);
 }
 
 async function handleSubscriptionUpdated(sub: Stripe.Subscription): Promise<void> {

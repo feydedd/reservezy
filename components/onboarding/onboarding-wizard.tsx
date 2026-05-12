@@ -16,6 +16,15 @@ const STEPS: { id: number; label: string; short: string }[] = [
   { id: 8, label: "Billing",      short: "Billing"  },
 ];
 
+const IVR_CHECKOUT_COUNTRIES = [
+  { code: "GB", label: "United Kingdom (+44)" },
+  { code: "US", label: "United States (+1)" },
+  { code: "AU", label: "Australia (+61)" },
+  { code: "IE", label: "Ireland (+353)" },
+  { code: "CA", label: "Canada (+1)" },
+  { code: "NZ", label: "New Zealand (+64)" },
+] as const;
+
 const TIER_INFO = {
   BASIC: {
     price: "£14.99/mo",
@@ -23,6 +32,8 @@ const TIER_INFO = {
     badge: "bg-white/[0.06] text-slate-300",
     features: [
       "Public booking page & calendar dashboard",
+      "Google Calendar & Outlook sync",
+      "Managed phone IVR with a dedicated business number",
       "In-app checklist, referrals & promo codes",
       "Internal notes (team-only)",
       "Buffer time & holiday closures",
@@ -45,7 +56,6 @@ const TIER_INFO = {
     badge: "bg-yellow-400/10 text-yellow-300",
     features: [
       "Everything in Standard",
-      "Google Calendar & Outlook sync",
       "Custom branding (logo, colours, fonts)",
       "Full analytics & cancel/reschedule links",
       "Multi-location, review prompts & template library",
@@ -141,6 +151,9 @@ export function OnboardingWizard() {
   const [allowGuestCancel,   setAllowGuestCancel]   = useState(false);
   const [cancelNoticeHours,  setCancelNoticeHours]  = useState(24);
 
+  /** Used for automatic managed IVR number provisioning after Stripe checkout. */
+  const [ivrCheckoutCountry, setIvrCheckoutCountry] = useState("GB");
+
   useEffect(() => {
     fetch("/api/onboarding")
       .then(async (res) => {
@@ -190,7 +203,11 @@ export function OnboardingWizard() {
     setSavingStep(8);
     setLoadError(null);
     try {
-      const res  = await fetch("/api/billing/onboarding-checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tier }) });
+      const res  = await fetch("/api/billing/onboarding-checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tier, ivrCountryCode: ivrCheckoutCountry }),
+      });
       const data: unknown = await res.json();
       if (!res.ok) {
         const msg = (data as { error?: string })?.error ?? "Stripe checkout failed.";
@@ -534,6 +551,27 @@ export function OnboardingWizard() {
                   Complete steps 3–7 to unlock billing — or skip and explore the dashboard first.
                 </div>
               )}
+
+              <div className="mb-5 space-y-2">
+                <label className="block text-sm font-semibold text-rz-muted">
+                  Country for your managed phone number
+                </label>
+                <p className="text-xs text-rz-subtle">
+                  After payment, we provision a dedicated IVR number in this region (included in every plan).
+                </p>
+                <select
+                  value={ivrCheckoutCountry}
+                  onChange={(e) => setIvrCheckoutCountry(e.target.value)}
+                  className="rz-field max-w-md"
+                  disabled={!payload?.navigation.checkoutUnlocked}
+                >
+                  {IVR_CHECKOUT_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
                 {(["BASIC", "STANDARD", "PREMIUM"] as const).map(tier => {
